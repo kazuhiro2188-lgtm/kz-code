@@ -343,6 +343,7 @@ Use whichever pattern fits the work breakdown:
   - lint、type-check、buildを並列実行可能な別ジョブに分離
   - Next.jsビルドキャッシュを追加
   - 環境変数の設定を追加（ビルド時に必要）
+  - **注意**: lintジョブは一時的にスキップ（ESLint設定の問題のため後回し）
   - _Requirements: 10.5_
 
 - [x] 20.2 E2E テストパイプラインの確認
