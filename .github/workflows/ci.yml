@@ -16,7 +16,7 @@ jobs:
           node-version: "20"
           cache: "npm"
       - run: npm ci --legacy-peer-deps
-      - run: npm run lint
+      - run: npx eslint . --ext .ts,.tsx,.js,.jsx
 
   type-check:
     runs-on: ubuntu-latest
