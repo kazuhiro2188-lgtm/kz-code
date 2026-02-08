@@ -158,11 +158,11 @@ class ContentServiceImpl implements ContentService {
 
           const courses: Course[] =
             data?.map((c) => ({
-              id: c.id,
-              title: c.title,
-              description: c.description,
-              orderIndex: c.order_index,
-              createdAt: c.created_at,
+              id: (c as { id: string }).id,
+              title: (c as { title: string }).title,
+              description: (c as { description: string | null }).description,
+              orderIndex: (c as { order_index: number }).order_index,
+              createdAt: (c as { created_at: string }).created_at,
             })) || [];
 
           return {
@@ -231,11 +231,11 @@ class ContentServiceImpl implements ContentService {
           return {
             success: true,
             data: {
-              id: data.id,
-              title: data.title,
-              description: data.description,
-              orderIndex: data.order_index,
-              createdAt: data.created_at,
+              id: (data as { id: string }).id,
+              title: (data as { title: string }).title,
+              description: (data as { description: string | null }).description,
+              orderIndex: (data as { order_index: number }).order_index,
+              createdAt: (data as { created_at: string }).created_at,
             },
           } as Result<Course | null, ContentError>;
         } catch (error) {
@@ -277,7 +277,7 @@ class ContentServiceImpl implements ContentService {
             .eq("id", sectionId)
             .single();
 
-          if (sectionError || !section || section.course_id !== courseId) {
+          if (sectionError || !section || (section as { course_id: string }).course_id !== courseId) {
             return {
               success: false,
               error: {
@@ -322,13 +322,13 @@ class ContentServiceImpl implements ContentService {
           return {
             success: true,
             data: {
-              id: lesson.id,
-              sectionId: lesson.section_id,
+              id: (lesson as { id: string }).id,
+              sectionId: (lesson as { section_id: string }).section_id,
               courseId: courseId,
-              title: lesson.title,
-              contentPath: lesson.content_path,
-              orderIndex: lesson.order_index,
-              createdAt: lesson.created_at,
+              title: (lesson as { title: string }).title,
+              contentPath: (lesson as { content_path: string }).content_path,
+              orderIndex: (lesson as { order_index: number }).order_index,
+              createdAt: (lesson as { created_at: string }).created_at,
             },
           } as Result<Lesson | null, ContentError>;
         } catch (error) {
@@ -377,9 +377,10 @@ class ContentServiceImpl implements ContentService {
 
       // MDXファイルを読み込む
       // content_path が相対パスの場合、ベースパスと結合
-      const filePath = lesson.content_path.startsWith("/")
-        ? join(process.cwd(), lesson.content_path)
-        : join(this.CONTENT_BASE_PATH, lesson.content_path);
+      const contentPath = (lesson as { content_path: string }).content_path;
+      const filePath = contentPath.startsWith("/")
+        ? join(process.cwd(), contentPath)
+        : join(this.CONTENT_BASE_PATH, contentPath);
 
       try {
         const content = await readFile(filePath, "utf-8");
@@ -436,7 +437,7 @@ class ContentServiceImpl implements ContentService {
       }
 
       const completedLessonIds = new Set(
-        completedLessons?.map((l) => l.lesson_id) || []
+        completedLessons?.map((l) => (l as { lesson_id: string }).lesson_id) || []
       );
 
       // すべてのレッスンを取得（order_index順）
@@ -458,16 +459,17 @@ class ContentServiceImpl implements ContentService {
       // 未完了のレッスンを推奨レッスンとして返す（最大10件）
       const recommendedLessons: Lesson[] = [];
       for (const lesson of allLessons || []) {
-        if (!completedLessonIds.has(lesson.id)) {
-          const section = lesson.sections as { course_id: string };
+        const lessonTyped = lesson as { id: string; section_id: string; title: string; content_path: string; order_index: number; created_at: string; sections: { course_id: string } };
+        if (!completedLessonIds.has(lessonTyped.id)) {
+          const section = lessonTyped.sections;
           recommendedLessons.push({
-            id: lesson.id,
-            sectionId: lesson.section_id,
+            id: lessonTyped.id,
+            sectionId: lessonTyped.section_id,
             courseId: section.course_id,
-            title: lesson.title,
-            contentPath: lesson.content_path,
-            orderIndex: lesson.order_index,
-            createdAt: lesson.created_at,
+            title: lessonTyped.title,
+            contentPath: lessonTyped.content_path,
+            orderIndex: lessonTyped.order_index,
+            createdAt: lessonTyped.created_at,
           });
 
           if (recommendedLessons.length >= 10) {
@@ -516,13 +518,11 @@ class ContentServiceImpl implements ContentService {
       let context = contentResult.data;
 
       if (!lessonError && lesson) {
-        const section = lesson.sections as {
-          title: string;
-          courses: { title: string };
-        };
+        const lessonTyped = lesson as { title: string; sections: { title: string; courses: { title: string } } };
+        const section = lessonTyped.sections;
         const courseTitle = section.courses.title;
         const sectionTitle = section.title;
-        const lessonTitle = lesson.title;
+        const lessonTitle = lessonTyped.title;
 
         // メタデータをコンテキストに追加
         context = `# ${courseTitle} > ${sectionTitle} > ${lessonTitle}\n\n${context}`;
@@ -581,7 +581,7 @@ class ContentServiceImpl implements ContentService {
             } as Result<{ course: Course; sections: Array<Section & { lessons: Lesson[] }> } | null, ContentError>;
           }
 
-          const sectionIds = sectionsData?.map((s) => s.id) || [];
+          const sectionIds = sectionsData?.map((s) => (s as { id: string }).id) || [];
           if (sectionIds.length === 0) {
             return {
               success: true,
@@ -611,25 +611,31 @@ class ContentServiceImpl implements ContentService {
 
           // セクションごとにレッスンをグループ化
           const sections: Array<Section & { lessons: Lesson[] }> =
-            sectionsData?.map((section) => ({
-              id: section.id,
-              courseId: section.course_id,
-              title: section.title,
-              orderIndex: section.order_index,
-              createdAt: section.created_at,
-              lessons:
-                lessonsData
-                  ?.filter((lesson) => lesson.section_id === section.id)
-                  .map((lesson) => ({
-                    id: lesson.id,
-                    sectionId: lesson.section_id,
-                    courseId: courseId,
-                    title: lesson.title,
-                    contentPath: lesson.content_path,
-                    orderIndex: lesson.order_index,
-                    createdAt: lesson.created_at,
-                  })) || [],
-            })) || [];
+            sectionsData?.map((section) => {
+              const sectionTyped = section as { id: string; course_id: string; title: string; order_index: number; created_at: string };
+              return {
+                id: sectionTyped.id,
+                courseId: sectionTyped.course_id,
+                title: sectionTyped.title,
+                orderIndex: sectionTyped.order_index,
+                createdAt: sectionTyped.created_at,
+                lessons:
+                  lessonsData
+                    ?.filter((lesson) => (lesson as { section_id: string }).section_id === sectionTyped.id)
+                    .map((lesson) => {
+                      const lessonTyped = lesson as { id: string; section_id: string; title: string; content_path: string; order_index: number; created_at: string };
+                      return {
+                        id: lessonTyped.id,
+                        sectionId: lessonTyped.section_id,
+                        courseId: courseId,
+                        title: lessonTyped.title,
+                        contentPath: lessonTyped.content_path,
+                        orderIndex: lessonTyped.order_index,
+                        createdAt: lessonTyped.created_at,
+                      };
+                    }) || [],
+              };
+            }) || [];
 
           return {
             success: true,

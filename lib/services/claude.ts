@@ -152,14 +152,6 @@ ${context}
                 });
                 controller.close();
                 break;
-              } else if (event.type === "error") {
-                // エラー発生
-                controller.enqueue({
-                  type: "error",
-                  error: event.error?.message || "ストリーミングエラーが発生しました",
-                });
-                controller.close();
-                break;
               }
             }
           } catch (error) {
