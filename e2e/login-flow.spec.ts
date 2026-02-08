@@ -53,8 +53,8 @@ test.describe("ログインフロー", () => {
     
     // エラーメッセージが表示されているか、またはログインページに留まっていることを確認
     const errorMessage = page.locator('text=/エラー|失敗|無効|認証/');
-    const errorCount = await errorMessage.count();
-    const isStillOnLoginPage = page.url().includes("/login");
+    const errorCount: number = await errorMessage.count();
+    const isStillOnLoginPage: boolean = page.url().includes("/login");
     
     expect(errorCount > 0 || isStillOnLoginPage).toBeTruthy();
   });
