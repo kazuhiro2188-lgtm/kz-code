@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
+    "lint": "next lint",
     "type-check": "tsc --noEmit",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
@@ -25,13 +25,12 @@
     "zustand": "^5.0.2"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.3",
     "@playwright/test": "^1.49.1",
     "@tailwindcss/postcss": "^4.1.18",
     "@types/node": "^20.17.10",
     "@types/react": "^19.2.10",
     "@types/react-dom": "^19.2.3",
-    "eslint": "^9",
+    "eslint": "^8.57.1",
     "eslint-config-next": "16.1.6",
     "prettier": "^3.4.2",
     "tailwindcss": "^4.1.18",
