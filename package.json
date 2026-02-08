@@ -1,0 +1,39 @@
+{
+  "name": "kz-code-app",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
+  },
+  "dependencies": {
+    "next": "16.1.6",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "@supabase/supabase-js": "^2.47.10",
+    "@supabase/ssr": "^0.5.2",
+    "@anthropic-ai/sdk": "^0.74.0",
+    "zustand": "^5.0.2",
+    "framer-motion": "^11.11.17",
+    "mermaid": "^11.4.0",
+    "@mdx-js/react": "^3.0.1",
+    "next-mdx-remote": "^4.4.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "@types/node": "^20.17.10",
+    "@types/react": "^19.2.10",
+    "@types/react-dom": "^19.2.3",
+    "tailwindcss": "^4.1.18",
+    "@tailwindcss/postcss": "^4.1.18",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "@playwright/test": "^1.49.1",
+    "prettier": "^3.4.2"
+  }
+}
