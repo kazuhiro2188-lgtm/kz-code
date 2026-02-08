@@ -1,18 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { contentService } from "@/lib/services/content";
-import { progressService, type LessonStatus } from "@/lib/services/progress";
-import CourseOverview from "@/components/courses/CourseOverview";
-import SectionLessonList from "@/components/courses/SectionLessonList";
+import type { LessonStatus } from "@/lib/services/progress";
 import Link from "next/link";
+import CourseOverview from "@/components/courses/CourseOverview";
+import SectionLessonListWrapper from "@/components/courses/SectionLessonListWrapper";
 
 type CoursePageProps = {
   params: Promise<{ courseId: string }>;
 };
-
-// ISR: 60秒間キャッシュ
-export const revalidate = 60;
 
 export async function generateMetadata({
   params,
@@ -43,6 +39,9 @@ export async function generateMetadata({
   };
 }
 
+// ISR: コース情報を60秒間キャッシュ
+export const revalidate = 60;
+
 /**
  * コース詳細ページ
  * 
@@ -66,13 +65,10 @@ export default async function CoursePage({ params }: CoursePageProps) {
 
   const { course, sections } = courseDataResult.data;
 
-  // すべてのレッスンIDを取得
-  const allLessonIds = sections.flatMap((section) =>
-    section.lessons.map((lesson) => lesson.id)
-  );
-
   // 各レッスンの完了ステータスを取得（認証無効時は空のマップ）
   const lessonStatuses = new Map<string, LessonStatus>();
+  // Mapを配列に変換（Server ComponentからClient Componentへのシリアライズのため）
+  const lessonStatusesArray = Array.from(lessonStatuses.entries());
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900 py-4 sm:py-6 md:py-8 px-4 sm:px-6 lg:px-8">
@@ -102,10 +98,10 @@ export default async function CoursePage({ params }: CoursePageProps) {
         <CourseOverview course={course} />
 
         {/* セクション・レッスン一覧 */}
-        <SectionLessonList
+        <SectionLessonListWrapper
           courseId={courseId}
           sections={sections}
-          lessonStatuses={lessonStatuses}
+          lessonStatusesArray={lessonStatusesArray}
         />
       </div>
     </div>
