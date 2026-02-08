@@ -10,26 +10,35 @@ export function ScrollRestoration() {
   const pathname = usePathname();
   const scrollPositionRef = useRef<number>(0);
   const isNavigatingRef = useRef<boolean>(false);
+  const originalScrollToRef = useRef<typeof window.scrollTo | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
     // 1. ブラウザのデフォルトのスクロール復元を無効化
-    window.history.scrollRestoration = "manual";
+    if ("scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "manual";
+    }
 
     // 2. 現在のスクロール位置を保存
-    scrollPositionRef.current = window.scrollY;
+    scrollPositionRef.current = window.scrollY || window.pageYOffset || 0;
 
     // 3. window.scrollToをオーバーライドして、自動スクロールを防ぐ
-    const originalScrollTo = window.scrollTo.bind(window);
+    if (!originalScrollToRef.current) {
+      originalScrollToRef.current = window.scrollTo.bind(window);
+    }
+    
+    const originalScrollTo = originalScrollToRef.current;
     
     // ページ遷移時の自動スクロール（top: 0, left: 0）を防ぐ
     window.scrollTo = function(options?: ScrollToOptions | number, y?: number) {
       // 自動スクロール（top: 0）を検出して防ぐ
       if (isNavigatingRef.current) {
-        // ページ遷移中は自動スクロールを無効化
-        const top = typeof options === "object" && options !== null ? options.top : (typeof options === "number" ? options : 0);
-        if (top === 0) {
+        const top = typeof options === "object" && options !== null 
+          ? (options.top ?? 0) 
+          : (typeof options === "number" ? options : 0);
+        if (top === 0 && (typeof options !== "object" || !options?.behavior)) {
+          // ページ遷移中の自動スクロールを無視
           return;
         }
       }
@@ -43,33 +52,10 @@ export function ScrollRestoration() {
       return originalScrollTo(0, 0);
     };
 
-    // 4. スクロールイベントを監視して、意図しないスクロールを防ぐ
-    let scrollTimeout: NodeJS.Timeout;
-    const handleScroll = () => {
-      // スクロール位置を更新
-      scrollPositionRef.current = window.scrollY;
-      
-      // ページ遷移直後の自動スクロールを検出
-      if (isNavigatingRef.current && window.scrollY === 0) {
-        // 自動スクロールを検出した場合、元の位置に戻す
-        clearTimeout(scrollTimeout);
-        scrollTimeout = setTimeout(() => {
-          if (scrollPositionRef.current !== 0) {
-            window.scrollTo({
-              top: scrollPositionRef.current,
-              behavior: "instant" as ScrollBehavior,
-            });
-          }
-        }, 0);
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-
     return () => {
-      window.removeEventListener("scroll", handleScroll);
-      window.scrollTo = originalScrollTo;
-      clearTimeout(scrollTimeout);
+      if (originalScrollToRef.current) {
+        window.scrollTo = originalScrollToRef.current;
+      }
     };
   }, []);
 
@@ -81,16 +67,19 @@ export function ScrollRestoration() {
     isNavigatingRef.current = true;
     
     // 現在のスクロール位置を保存
-    scrollPositionRef.current = window.scrollY;
+    scrollPositionRef.current = window.scrollY || window.pageYOffset || 0;
 
     // 短時間後に自動スクロールを防ぐ
     const preventScroll = () => {
       // 自動スクロールが発生した場合、元の位置に戻す
-      if (window.scrollY === 0 && scrollPositionRef.current !== 0) {
-        window.scrollTo({
-          top: scrollPositionRef.current,
-          behavior: "instant" as ScrollBehavior,
-        });
+      const currentScroll = window.scrollY || window.pageYOffset || 0;
+      if (currentScroll === 0 && scrollPositionRef.current !== 0) {
+        if (originalScrollToRef.current) {
+          originalScrollToRef.current({
+            top: scrollPositionRef.current,
+            behavior: "instant" as ScrollBehavior,
+          });
+        }
       }
     };
 
@@ -102,7 +91,7 @@ export function ScrollRestoration() {
       setTimeout(preventScroll, 100),
       setTimeout(() => {
         isNavigatingRef.current = false;
-      }, 200),
+      }, 300),
     ];
 
     return () => {
