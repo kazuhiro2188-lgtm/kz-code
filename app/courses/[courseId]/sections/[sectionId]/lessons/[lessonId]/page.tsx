@@ -1,14 +1,31 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { contentService } from "@/lib/services/content";
 import { progressService } from "@/lib/services/progress";
 import { mdxSerializer } from "@/lib/mdx/serializer";
-import MDXRenderer from "@/components/mdx/MDXRenderer";
 import CompleteLessonButton from "./CompleteLessonButton";
-import ChatUI from "@/components/chat/ChatUI";
 import { FadeIn, SlideUp } from "@/components/animations/PageTransition";
+
+// 動的インポートによるコード分割と遅延読み込み
+const MDXRenderer = dynamic(() => import("@/components/mdx/MDXRenderer"), {
+  loading: () => (
+    <div className="flex items-center justify-center py-12">
+      <div className="animate-pulse text-gray-400 dark:text-gray-600">コンテンツを読み込み中...</div>
+    </div>
+  ),
+});
+
+// ChatUIはClient Componentなので、Client Componentラッパーで動的インポート
+const ChatUI = dynamic(() => import("@/components/chat/ChatUI"), {
+  loading: () => (
+    <div className="flex items-center justify-center h-full">
+      <div className="animate-pulse text-gray-400 dark:text-gray-600">チャットを読み込み中...</div>
+    </div>
+  ),
+});
 
 type LessonPageProps = {
   params: Promise<{
@@ -33,12 +50,24 @@ export async function generateMetadata({
 
   if (!lessonResult.success || !lessonResult.data) {
     return {
-      title: "レッスンが見つかりません - KZ-Code",
+      title: "レッスンが見つかりません",
     };
   }
 
+  const lesson = lessonResult.data;
   return {
-    title: `${lessonResult.data.title} - KZ-Code`,
+    title: lesson.title,
+    description: `AI駆動開発のレッスン: ${lesson.title}`,
+    openGraph: {
+      title: lesson.title,
+      description: `AI駆動開発のレッスン: ${lesson.title}`,
+      type: "article",
+    },
+    twitter: {
+      card: "summary",
+      title: lesson.title,
+      description: `AI駆動開発のレッスン: ${lesson.title}`,
+    },
   };
 }
 
@@ -50,21 +79,9 @@ export async function generateMetadata({
 export default async function LessonPage({ params }: LessonPageProps) {
   const { courseId, sectionId, lessonId } = await params;
   
-  // 認証が無効化されている場合はダミーユーザーIDを使用
-  const isAuthDisabled = process.env.DISABLE_AUTH === "true";
+  // 認証を無効化 - ダミーユーザーIDを使用
   const dummyUserId = "00000000-0000-0000-0000-000000000000";
-
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  // 認証が無効化されている場合はダミーユーザーを使用
-  const currentUser = isAuthDisabled ? { id: dummyUserId } : (user || { id: dummyUserId });
-
-  if (!isAuthDisabled && !user) {
-    notFound();
-  }
+  const currentUser = { id: dummyUserId };
 
   // レッスンメタデータを取得
   const lessonResult = await contentService.getLesson(
@@ -100,10 +117,8 @@ export default async function LessonPage({ params }: LessonPageProps) {
   const serializedMDX = await mdxSerializer.serialize(contentResult.data);
 
   // レッスンの完了ステータスを取得（認証無効時は未完了として扱う）
-  const statusResult = isAuthDisabled
-    ? { success: true as const, data: { lessonId, completed: false, completedAt: null } }
-    : await progressService.getLessonStatus(currentUser.id, lessonId);
-  const isCompleted = statusResult.success && statusResult.data.completed;
+  const statusResult = { success: true as const, data: { lessonId, completed: false, completedAt: null } };
+  const isCompleted = false;
 
   // 前後レッスンを取得するため、セクション内のレッスン一覧を取得
   const courseDataResult = await contentService.getCourseWithSectionsAndLessons(
@@ -177,7 +192,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-4 sm:py-6 md:py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900 py-4 sm:py-6 md:py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
         {/* ナビゲーションバー */}
         <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -252,17 +267,23 @@ export default async function LessonPage({ params }: LessonPageProps) {
 
         {/* レッスンタイトル */}
         <FadeIn>
-          <div className="mb-6 sm:mb-8">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              {lesson.title}
-            </h1>
+          <div className="relative mb-6 sm:mb-8">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-pink-600/10 dark:from-blue-500/5 dark:via-purple-500/5 dark:to-pink-500/5 rounded-3xl blur-3xl" />
+            <div className="relative bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-2xl p-6 sm:p-8 border border-white/20 dark:border-gray-700/50 shadow-xl">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-gray-900 via-blue-700 to-purple-700 dark:from-white dark:via-blue-300 dark:to-purple-300 bg-clip-text text-transparent">
+                {lesson.title}
+              </h1>
+            </div>
           </div>
         </FadeIn>
 
         {/* MDX コンテンツ */}
         <SlideUp delay={0.1}>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-6 md:p-8 mb-6 sm:mb-8">
-            <MDXRenderer source={serializedMDX} isDark={false} />
+          <div className="relative group mb-6 sm:mb-8">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-pink-600/20 dark:from-blue-500/10 dark:via-purple-500/10 dark:to-pink-500/10 rounded-3xl blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/50 dark:border-gray-700/50 p-4 sm:p-6 md:p-8">
+              <MDXRenderer source={serializedMDX} isDark={false} />
+            </div>
           </div>
         </SlideUp>
 
@@ -273,12 +294,22 @@ export default async function LessonPage({ params }: LessonPageProps) {
 
         {/* AI チャット UI */}
         <SlideUp delay={0.3}>
-          <div className="mt-6 sm:mt-8">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-4">
-              AI アシスタント
-            </h2>
-            <div className="h-[400px] sm:h-[500px] md:h-[600px]">
-              <ChatUI lessonId={lessonId} />
+          <div className="relative group mt-6 sm:mt-8">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-pink-600/20 dark:from-blue-500/10 dark:via-purple-500/10 dark:to-pink-500/10 rounded-3xl blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/50 dark:border-gray-700/50 p-4 sm:p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-md">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                  </svg>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                  AI アシスタント
+                </h2>
+              </div>
+              <div className="h-[400px] sm:h-[500px] md:h-[600px]">
+                <ChatUI lessonId={lessonId} />
+              </div>
             </div>
           </div>
         </SlideUp>

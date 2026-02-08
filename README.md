@@ -59,6 +59,18 @@ npm run dev
 - `npm run test:e2e` - Playwright E2Eテスト実行
 - `npm run test:e2e:ui` - Playwright UIモードでテスト実行
 
+## デプロイ
+
+本番環境へのデプロイ手順は [DEPLOYMENT.md](./DEPLOYMENT.md) を参照してください。
+
+### クイックデプロイ（Vercel）
+
+1. [Vercel](https://vercel.com)にプロジェクトをインポート
+2. 環境変数を設定（`DEPLOYMENT.md`を参照）
+3. デプロイ完了
+
+詳細は [DEPLOYMENT.md](./DEPLOYMENT.md) を参照してください。
+
 ## テスト
 
 ### 統合テスト（Vitest）

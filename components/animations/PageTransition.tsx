@@ -40,6 +40,7 @@ export function FadeIn({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ delay, duration, ease: "easeOut" }}
+      style={{ willChange: "opacity" }}
     >
       {children}
     </motion.div>
@@ -65,6 +66,7 @@ export function SlideUp({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration, ease: "easeOut" }}
+      style={{ willChange: "opacity, transform" }}
     >
       {children}
     </motion.div>
@@ -121,6 +123,110 @@ export function StaggerItem({ children }: { children: ReactNode }) {
           },
         },
       }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+/**
+ * ScaleIn コンポーネント
+ * 
+ * スケールインアニメーションを提供します。
+ */
+export function ScaleIn({
+  children,
+  delay = 0,
+  duration = 0.4,
+}: {
+  children: ReactNode;
+  delay?: number;
+  duration?: number;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ delay, duration, ease: "easeOut" }}
+      style={{ willChange: "opacity, transform" }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+/**
+ * SlideInFromLeft コンポーネント
+ * 
+ * 左からスライドインするアニメーションを提供します。
+ */
+export function SlideInFromLeft({
+  children,
+  delay = 0,
+  duration = 0.4,
+}: {
+  children: ReactNode;
+  delay?: number;
+  duration?: number;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay, duration, ease: "easeOut" }}
+      style={{ willChange: "opacity, transform" }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+/**
+ * SlideInFromRight コンポーネント
+ * 
+ * 右からスライドインするアニメーションを提供します。
+ */
+export function SlideInFromRight({
+  children,
+  delay = 0,
+  duration = 0.4,
+}: {
+  children: ReactNode;
+  delay?: number;
+  duration?: number;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay, duration, ease: "easeOut" }}
+      style={{ willChange: "opacity, transform" }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+/**
+ * RotateIn コンポーネント
+ * 
+ * 回転しながらフェードインするアニメーションを提供します。
+ */
+export function RotateIn({
+  children,
+  delay = 0,
+  duration = 0.5,
+}: {
+  children: ReactNode;
+  delay?: number;
+  duration?: number;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, rotate: -10 }}
+      animate={{ opacity: 1, rotate: 0 }}
+      transition={{ delay, duration, ease: "easeOut" }}
+      style={{ willChange: "opacity, transform" }}
     >
       {children}
     </motion.div>

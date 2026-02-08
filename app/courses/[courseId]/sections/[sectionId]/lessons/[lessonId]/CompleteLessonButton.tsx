@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { completeLessonAction } from "./actions";
-import { AnimatedButton } from "@/components/animations/InteractiveElements";
+import { RippleButton } from "@/components/animations/InteractiveElements";
 
 /**
  * CompleteLessonButton コンポーネントの Props
@@ -71,7 +71,7 @@ export default function CompleteLessonButton({
         </div>
       )}
 
-      <AnimatedButton
+      <RippleButton
         onClick={handleComplete}
         disabled={isPending}
         className="w-full px-6 py-4 bg-blue-600 dark:bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
@@ -103,7 +103,7 @@ export default function CompleteLessonButton({
         ) : (
           "レッスンを完了する"
         )}
-      </AnimatedButton>
+      </RippleButton>
     </div>
   );
 }

@@ -26,9 +26,20 @@ export async function generateMetadata({
     };
   }
 
+  const course = courseResult.data;
   return {
-    title: `${courseResult.data.title} - KZ-Code`,
-    description: courseResult.data.description || undefined,
+    title: course.title,
+    description: course.description || `AI駆動開発の基礎を学ぶコース: ${course.title}`,
+    openGraph: {
+      title: course.title,
+      description: course.description || undefined,
+      type: "website",
+    },
+    twitter: {
+      card: "summary",
+      title: course.title,
+      description: course.description || undefined,
+    },
   };
 }
 
@@ -40,21 +51,9 @@ export async function generateMetadata({
 export default async function CoursePage({ params }: CoursePageProps) {
   const { courseId } = await params;
   
-  // 認証が無効化されている場合はダミーユーザーIDを使用
-  const isAuthDisabled = process.env.DISABLE_AUTH === "true";
+  // 認証を無効化 - ダミーユーザーIDを使用
   const dummyUserId = "00000000-0000-0000-0000-000000000000";
-
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  // 認証が無効化されている場合はダミーユーザーを使用
-  const currentUser = isAuthDisabled ? { id: dummyUserId } : (user || { id: dummyUserId });
-
-  if (!isAuthDisabled && !user) {
-    notFound();
-  }
+  const currentUser = { id: dummyUserId };
 
   // コース情報とセクション・レッスン一覧を取得
   const courseDataResult = await contentService.getCourseWithSectionsAndLessons(
@@ -74,22 +73,9 @@ export default async function CoursePage({ params }: CoursePageProps) {
 
   // 各レッスンの完了ステータスを取得（認証無効時は空のマップ）
   const lessonStatuses = new Map<string, LessonStatus>();
-  if (!isAuthDisabled) {
-    await Promise.all(
-      allLessonIds.map(async (lessonId) => {
-        const statusResult = await progressService.getLessonStatus(
-          currentUser.id,
-          lessonId
-        );
-        if (statusResult.success) {
-          lessonStatuses.set(lessonId, statusResult.data);
-        }
-      })
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-4 sm:py-6 md:py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900 py-4 sm:py-6 md:py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
         {/* 戻るリンク */}
         <Link
