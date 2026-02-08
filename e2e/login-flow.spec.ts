@@ -53,9 +53,10 @@ test.describe("ログインフロー", () => {
     
     // エラーメッセージが表示されているか、またはログインページに留まっていることを確認
     const errorMessage = page.locator('text=/エラー|失敗|無効|認証/');
+    const errorCount = await errorMessage.count();
     const isStillOnLoginPage = page.url().includes("/login");
     
-    expect(errorMessage.count() > 0 || isStillOnLoginPage).toBeTruthy();
+    expect(errorCount > 0 || isStillOnLoginPage).toBeTruthy();
   });
 
   test("メールアドレス未入力でバリデーションエラーが表示される", async ({ page }) => {
