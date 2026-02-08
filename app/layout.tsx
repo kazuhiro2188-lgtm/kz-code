@@ -3,7 +3,6 @@ import { Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { NetworkStatus } from "@/components/ui/NetworkStatus";
-import { ScrollRestoration } from "@/components/scroll/ScrollRestoration";
 
 const notoSansJP = Noto_Sans_JP({
   weight: ["400", "500", "600", "700"],
@@ -94,7 +93,6 @@ export default function RootLayout({
           メインコンテンツにスキップ
         </a>
         <ThemeProvider>
-          <ScrollRestoration />
           <NetworkStatus />
           <main id="main-content" tabIndex={-1}>
             {children}
