@@ -32,7 +32,7 @@ export default function LoginForm() {
       <div>
         <label
           htmlFor="email"
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+          className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2"
         >
           メールアドレス
         </label>
@@ -55,7 +55,7 @@ export default function LoginForm() {
       <div>
         <label
           htmlFor="password"
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+          className="block text-sm font-medium text-gray-900 dark:text-gray-300 mb-2"
         >
           パスワード
         </label>

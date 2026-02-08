@@ -18,7 +18,7 @@ export default function SignUpPage() {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900">アカウント作成</h1>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-2 text-sm text-gray-900">
             KZ-Code のアカウントを作成して学習を開始しましょう
           </p>
         </div>

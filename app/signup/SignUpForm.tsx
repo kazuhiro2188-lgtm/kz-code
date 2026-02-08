@@ -36,7 +36,7 @@ export default function SignUpForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label htmlFor="email" className="block text-sm font-medium mb-1">
+        <label htmlFor="email" className="block text-sm font-medium mb-1 text-gray-900">
           メールアドレス
         </label>
         <input
@@ -46,13 +46,13 @@ export default function SignUpForm() {
           onChange={(e) => setEmail(e.target.value)}
           required
           disabled={isPending}
-          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-gray-900 placeholder-gray-400"
           placeholder="example@email.com"
         />
       </div>
 
       <div>
-        <label htmlFor="password" className="block text-sm font-medium mb-1">
+        <label htmlFor="password" className="block text-sm font-medium mb-1 text-gray-900">
           パスワード
         </label>
         <input
@@ -63,16 +63,16 @@ export default function SignUpForm() {
           required
           disabled={isPending}
           minLength={8}
-          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-gray-900 placeholder-gray-400"
           placeholder="8文字以上、英数字を含む"
         />
-        <p className="mt-1 text-xs text-gray-500">
+        <p className="mt-1 text-xs text-gray-600">
           8文字以上で、英数字を含む必要があります
         </p>
       </div>
 
       <div>
-        <label htmlFor="confirmPassword" className="block text-sm font-medium mb-1">
+        <label htmlFor="confirmPassword" className="block text-sm font-medium mb-1 text-gray-900">
           パスワード（確認）
         </label>
         <input
@@ -83,7 +83,7 @@ export default function SignUpForm() {
           required
           disabled={isPending}
           minLength={8}
-          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-gray-900 placeholder-gray-400"
           placeholder="パスワードを再入力"
         />
       </div>
