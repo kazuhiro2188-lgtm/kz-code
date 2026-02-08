@@ -33,7 +33,7 @@ export default async function OnboardingPage() {
     .single();
 
   // プロフィールが存在し、オンボーディングが完了している場合はダッシュボードへリダイレクト
-  if (!profileError && profile?.onboarding_completed) {
+  if (!profileError && profile && (profile as { onboarding_completed: boolean }).onboarding_completed) {
     redirect("/dashboard");
   }
 

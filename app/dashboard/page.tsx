@@ -47,13 +47,13 @@ export default async function DashboardPage() {
       .insert({
         id: user.id,
         onboarding_completed: true,
-      });
+      } as never);
 
     if (createError && createError.code !== "23505") {
       // 23505 は重複エラー（既に作成されている場合）
       console.error("プロフィール作成エラー:", createError);
     }
-  } else if (!existingProfile.onboarding_completed) {
+  } else if ((existingProfile as { onboarding_completed: boolean }).onboarding_completed === false) {
     // オンボーディング未完了の場合はオンボーディングページへリダイレクト
     redirect("/onboarding");
   }

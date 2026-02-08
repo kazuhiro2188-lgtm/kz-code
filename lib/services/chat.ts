@@ -125,7 +125,7 @@ class ChatServiceImpl implements ChatService {
         .insert({
           user_id: userId,
           lesson_id: lessonId || null,
-        })
+        } as never)
         .select()
         .single();
 
@@ -163,11 +163,11 @@ class ChatServiceImpl implements ChatService {
       return {
         success: true,
         data: {
-          id: data.id,
-          userId: data.user_id,
-          lessonId: data.lesson_id,
-          createdAt: data.created_at,
-          updatedAt: data.updated_at,
+          id: (data as { id: string }).id,
+          userId: (data as { user_id: string }).user_id,
+          lessonId: (data as { lesson_id: string | null }).lesson_id,
+          createdAt: (data as { created_at: string }).created_at,
+          updatedAt: (data as { updated_at: string }).updated_at,
         },
       };
     } catch (error) {
@@ -219,7 +219,7 @@ class ChatServiceImpl implements ChatService {
 
       const nextOrderIndex =
         existingMessages && existingMessages.length > 0
-          ? existingMessages[0].order_index + 1
+          ? ((existingMessages[0] as { order_index: number }).order_index + 1)
           : 0;
 
       // メッセージを保存
@@ -230,7 +230,7 @@ class ChatServiceImpl implements ChatService {
           role,
           content,
           order_index: nextOrderIndex,
-        })
+        } as never)
         .select()
         .single();
 
@@ -268,18 +268,18 @@ class ChatServiceImpl implements ChatService {
       // 会話の updated_at を更新
       await supabase
         .from("chat_conversations")
-        .update({ updated_at: new Date().toISOString() })
+        .update({ updated_at: new Date().toISOString() } as never)
         .eq("id", conversationId);
 
       return {
         success: true,
         data: {
-          id: data.id,
-          conversationId: data.conversation_id,
-          role: data.role as "user" | "assistant",
-          content: data.content,
-          createdAt: data.created_at,
-          orderIndex: data.order_index,
+          id: (data as { id: string }).id,
+          conversationId: (data as { conversation_id: string }).conversation_id,
+          role: (data as { role: string }).role as "user" | "assistant",
+          content: (data as { content: string }).content,
+          createdAt: (data as { created_at: string }).created_at,
+          orderIndex: (data as { order_index: number }).order_index,
         },
       };
     } catch (error) {
@@ -355,20 +355,20 @@ class ChatServiceImpl implements ChatService {
         success: true,
         data: {
           conversation: {
-            id: conversation.id,
-            userId: conversation.user_id,
-            lessonId: conversation.lesson_id,
-            createdAt: conversation.created_at,
-            updatedAt: conversation.updated_at,
+            id: (conversation as { id: string }).id,
+            userId: (conversation as { user_id: string }).user_id,
+            lessonId: (conversation as { lesson_id: string | null }).lesson_id,
+            createdAt: (conversation as { created_at: string }).created_at,
+            updatedAt: (conversation as { updated_at: string }).updated_at,
           },
           messages:
             messages?.map((msg) => ({
-              id: msg.id,
-              conversationId: msg.conversation_id,
-              role: msg.role as "user" | "assistant",
-              content: msg.content,
-              createdAt: msg.created_at,
-              orderIndex: msg.order_index,
+              id: (msg as { id: string }).id,
+              conversationId: (msg as { conversation_id: string }).conversation_id,
+              role: (msg as { role: string }).role as "user" | "assistant",
+              content: (msg as { content: string }).content,
+              createdAt: (msg as { created_at: string }).created_at,
+              orderIndex: (msg as { order_index: number }).order_index,
             })) || [],
         },
       };

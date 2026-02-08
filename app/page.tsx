@@ -37,7 +37,7 @@ export default async function Home() {
       redirect("/onboarding");
     }
 
-    if (profile && !profile.onboarding_completed) {
+    if (profile && !(profile as { onboarding_completed: boolean }).onboarding_completed) {
       redirect("/onboarding");
     }
 

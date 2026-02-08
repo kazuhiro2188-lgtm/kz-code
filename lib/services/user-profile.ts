@@ -111,9 +111,9 @@ class UserProfileServiceImpl implements UserProfileService {
       return {
         success: true,
         data: {
-          onboarding_completed: data.onboarding_completed,
-          learning_goal: data.learning_goal,
-          experience_level: data.experience_level,
+          onboarding_completed: (data as { onboarding_completed: boolean }).onboarding_completed,
+          learning_goal: (data as { learning_goal: string | null }).learning_goal,
+          experience_level: (data as { experience_level: string | null }).experience_level,
         },
       };
     } catch (error) {
@@ -164,7 +164,7 @@ class UserProfileServiceImpl implements UserProfileService {
           onboarding_completed: true,
           learning_goal: params.learning_goal.trim(),
           experience_level: params.experience_level.trim(),
-        })
+        } as never)
         .eq("id", userId);
 
       if (error) {

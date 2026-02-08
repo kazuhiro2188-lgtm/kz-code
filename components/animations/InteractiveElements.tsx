@@ -12,7 +12,7 @@ export function AnimatedButton({
   children,
   className = "",
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { children: ReactNode }) {
+}: Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onAnimationStart" | "onAnimationEnd" | "onDrag" | "onDragStart" | "onDragEnd"> & { children: ReactNode }) {
   return (
     <motion.button
       whileHover={{ scale: 1.05 }}
@@ -58,7 +58,7 @@ export function AnimatedLink({
   children,
   className = "",
   ...props
-}: React.AnchorHTMLAttributes<HTMLAnchorElement> & { children: ReactNode }) {
+}: Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, "onAnimationStart" | "onAnimationEnd" | "onDrag" | "onDragStart" | "onDragEnd"> & { children: ReactNode }) {
   return (
     <motion.a
       whileHover={{ scale: 1.05 }}

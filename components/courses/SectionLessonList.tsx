@@ -85,7 +85,7 @@ export default function SectionLessonList({
                         <h3 className="font-medium text-gray-900 dark:text-white">
                           {lesson.title}
                         </h3>
-                        {isCompleted && status.completedAt && (
+                        {isCompleted && status?.completedAt && (
                           <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                             完了日: {new Date(status.completedAt).toLocaleDateString("ja-JP")}
                           </p>

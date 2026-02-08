@@ -28,7 +28,7 @@ export async function signUpAction(
     .insert({
       id: result.data.user.id,
       onboarding_completed: false,
-    })
+    } as never)
     .select()
     .single();
 
