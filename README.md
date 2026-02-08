@@ -53,8 +53,35 @@ npm run dev
 - `npm run start` - プロダクションサーバー起動
 - `npm run lint` - ESLint実行
 - `npm run type-check` - TypeScript型チェック
+- `npm test` - Vitest統合テスト実行
+- `npm run test:watch` - Vitestウォッチモード
+- `npm run test:coverage` - テストカバレッジレポート生成
 - `npm run test:e2e` - Playwright E2Eテスト実行
 - `npm run test:e2e:ui` - Playwright UIモードでテスト実行
+
+## テスト
+
+### 統合テスト（Vitest）
+
+統合テストは`__tests__/integration/`ディレクトリにあります。
+
+```bash
+npm test
+```
+
+### E2Eテスト（Playwright）
+
+E2Eテストは`e2e/`ディレクトリにあります。実行前に以下の環境変数を設定してください：
+
+- `E2E_TEST_USER_EMAIL` - テスト用ユーザーのメールアドレス（デフォルト: `test@example.com`）
+- `E2E_TEST_USER_PASSWORD` - テスト用ユーザーのパスワード（デフォルト: `TestPassword123`）
+
+```bash
+# 環境変数を設定して実行
+E2E_TEST_USER_EMAIL=test@example.com E2E_TEST_USER_PASSWORD=TestPassword123 npm run test:e2e
+```
+
+**注意**: E2Eテストは実際のSupabaseとClaude APIを使用します。テスト用のアカウントを用意してください。
 
 ## プロジェクト構造
 
