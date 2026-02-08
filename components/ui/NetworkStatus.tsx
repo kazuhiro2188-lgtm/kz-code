@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect } from "react";
 import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 
 /**
@@ -8,19 +8,26 @@ import { useNetworkStatus } from "@/hooks/useNetworkStatus";
  * 
  * ネットワーク接続状態を表示する通知コンポーネントです。
  * オフライン時には警告を表示し、オンライン復帰時には成功メッセージを表示します。
+ * 
+ * CSSアニメーションを使用（framer-motionの代わり）して
+ * SSRプリレンダリング時の互換性を確保しています。
  */
 export function NetworkStatus() {
+  const [mounted, setMounted] = useState(false);
   const { isOnline, wasOffline } = useNetworkStatus();
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // SSR/プリレンダリング時は何も表示しない
+  if (!mounted) return null;
+
   return (
-    <AnimatePresence>
+    <>
       {!isOnline && (
-        <motion.div
-          initial={{ y: -100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: -100, opacity: 0 }}
-          transition={{ duration: 0.3 }}
-          className="fixed top-0 left-0 right-0 z-50 bg-red-600 text-white px-4 py-3 shadow-lg"
+        <div
+          className="fixed top-0 left-0 right-0 z-50 bg-red-600 text-white px-4 py-3 shadow-lg animate-[slideDown_0.3s_ease-out]"
         >
           <div className="max-w-7xl mx-auto flex items-center justify-center gap-2">
             <svg
@@ -40,15 +47,11 @@ export function NetworkStatus() {
               インターネット接続が切断されました。接続を確認してください。
             </p>
           </div>
-        </motion.div>
+        </div>
       )}
       {isOnline && wasOffline && (
-        <motion.div
-          initial={{ y: -100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: -100, opacity: 0 }}
-          transition={{ duration: 0.3 }}
-          className="fixed top-0 left-0 right-0 z-50 bg-green-600 text-white px-4 py-3 shadow-lg"
+        <div
+          className="fixed top-0 left-0 right-0 z-50 bg-green-600 text-white px-4 py-3 shadow-lg animate-[slideDown_0.3s_ease-out]"
         >
           <div className="max-w-7xl mx-auto flex items-center justify-center gap-2">
             <svg
@@ -68,8 +71,8 @@ export function NetworkStatus() {
               インターネット接続が復旧しました。
             </p>
           </div>
-        </motion.div>
+        </div>
       )}
-    </AnimatePresence>
+    </>
   );
 }
