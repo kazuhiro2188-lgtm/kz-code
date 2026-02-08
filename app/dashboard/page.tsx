@@ -23,43 +23,55 @@ export const revalidate = 60;
  * Server Component として実装され、進捗サマリー、推奨レッスン、コース一覧を表示します。
  */
 export default async function DashboardPage() {
+  // 認証が無効化されている場合はダミーユーザーIDを使用
+  const isAuthDisabled = process.env.DISABLE_AUTH === "true";
+  const dummyUserId = "00000000-0000-0000-0000-000000000000";
+
   const supabase = await createServerSupabaseClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // 未認証ユーザーはログインページへリダイレクト
-  if (!user) {
+  // 認証が無効化されている場合はダミーユーザーを使用
+  const currentUser = isAuthDisabled ? { id: dummyUserId } : (user || { id: dummyUserId });
+
+  // 未認証ユーザーはログインページへリダイレクト（認証が有効な場合のみ）
+  if (!isAuthDisabled && !user) {
     redirect("/login");
   }
 
-  // プロフィールが存在しない場合は自動作成（オンボーディング完了済みとして）
-  const { data: existingProfile } = await supabase
-    .from("profiles")
-    .select("onboarding_completed")
-    .eq("id", user.id)
-    .single();
-
-  if (!existingProfile) {
-    // プロフィールが存在しない場合は作成（オンボーディング完了済みとして）
-    const { error: createError } = await supabase
+  // 認証が無効化されている場合はプロフィールチェックをスキップ
+  if (!isAuthDisabled) {
+    // プロフィールが存在しない場合は自動作成（オンボーディング完了済みとして）
+    const { data: existingProfile } = await supabase
       .from("profiles")
-      .insert({
-        id: user.id,
-        onboarding_completed: true,
-      } as never);
+      .select("onboarding_completed")
+      .eq("id", currentUser.id)
+      .single();
 
-    if (createError && createError.code !== "23505") {
-      // 23505 は重複エラー（既に作成されている場合）
-      console.error("プロフィール作成エラー:", createError);
+    if (!existingProfile) {
+      // プロフィールが存在しない場合は作成（オンボーディング完了済みとして）
+      const { error: createError } = await supabase
+        .from("profiles")
+        .insert({
+          id: currentUser.id,
+          onboarding_completed: true,
+        } as never);
+
+      if (createError && createError.code !== "23505") {
+        // 23505 は重複エラー（既に作成されている場合）
+        console.error("プロフィール作成エラー:", createError);
+      }
+    } else if ((existingProfile as { onboarding_completed: boolean }).onboarding_completed === false) {
+      // オンボーディング未完了の場合はオンボーディングページへリダイレクト
+      redirect("/onboarding");
     }
-  } else if ((existingProfile as { onboarding_completed: boolean }).onboarding_completed === false) {
-    // オンボーディング未完了の場合はオンボーディングページへリダイレクト
-    redirect("/onboarding");
   }
 
-  // 進捗サマリーを取得
-  const progressResult = await progressService.getProgressSummary(user.id);
+  // 進捗サマリーを取得（認証無効時は空のサマリー）
+  const progressResult = isAuthDisabled
+    ? { success: true as const, data: { totalLessons: 0, completedLessons: 0, progressPercentage: 0, totalLearningTime: 0, recentActivity: [] } }
+    : await progressService.getProgressSummary(currentUser.id);
   if (!progressResult.success) {
     // エラー時は空のサマリーを表示
     console.error("進捗サマリーの取得に失敗:", progressResult.error);
@@ -71,10 +83,10 @@ export default async function DashboardPage() {
     console.error("コース一覧の取得に失敗:", coursesResult.error);
   }
 
-  // 推奨レッスンを取得
-  const recommendedResult = await contentService.getRecommendedLessons(
-    user.id
-  );
+  // 推奨レッスンを取得（認証無効時は空の配列）
+  const recommendedResult = isAuthDisabled
+    ? { success: true as const, data: [] }
+    : await contentService.getRecommendedLessons(currentUser.id);
   if (!recommendedResult.success) {
     console.error("推奨レッスンの取得に失敗:", recommendedResult.error);
   }
@@ -119,7 +131,7 @@ export default async function DashboardPage() {
               <RecommendedLessons lessons={recommendedLessons} />
             </StaggerItem>
             <StaggerItem>
-              <CourseList courses={courses} userId={user.id} />
+              <CourseList courses={courses} userId={currentUser.id} />
             </StaggerItem>
           </div>
         </StaggerContainer>

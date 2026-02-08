@@ -3,6 +3,11 @@ import { NextResponse, type NextRequest } from "next/server";
 import type { CookieOptions } from "@supabase/ssr";
 
 export async function middleware(request: NextRequest) {
+  // 認証が無効化されている場合は、すべてのリクエストを許可
+  if (process.env.DISABLE_AUTH === "true") {
+    return NextResponse.next();
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   });

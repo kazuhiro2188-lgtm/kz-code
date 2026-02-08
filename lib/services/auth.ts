@@ -30,17 +30,37 @@ export interface AuthService {
 
 /**
  * メールアドレスの形式を検証します
+ * 開発環境ではより柔軟なバリデーションを適用
  */
 function validateEmail(email: string): boolean {
+  // 開発環境では、基本的な形式チェックのみ
+  const isDevMode = process.env.NODE_ENV === "development" || process.env.ALLOW_SIMPLE_PASSWORD === "true";
+  
+  if (isDevMode) {
+    // 開発環境: @マークが含まれていればOK（簡易チェック）
+    return email.includes("@") && email.length > 3;
+  }
+  
+  // 本番環境: 標準的なメールアドレス形式をチェック
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 }
 
 /**
  * パスワードの形式を検証します
- * 最小8文字、英数字を含む
+ * 開発環境では簡易パスワードを許可（最小4文字）
+ * 本番環境では最小8文字、英数字を含む
  */
 function validatePassword(password: string): boolean {
+  // 開発モードが有効な場合、簡易パスワードを許可
+  const isDevMode = process.env.NODE_ENV === "development" || process.env.ALLOW_SIMPLE_PASSWORD === "true";
+  
+  if (isDevMode) {
+    // 開発環境: 最小4文字
+    return password.length >= 4;
+  }
+  
+  // 本番環境: 最小8文字、英数字を含む
   if (password.length < 8) {
     return false;
   }
@@ -56,8 +76,26 @@ function validatePassword(password: string): boolean {
 function mapSupabaseError(error: unknown): AuthError {
   if (error && typeof error === "object" && "message" in error) {
     const supabaseError = error as { message: string; status?: number };
+    let message = supabaseError.message || "認証エラーが発生しました";
+    
+    const isDevMode = process.env.NODE_ENV === "development" || process.env.ALLOW_SIMPLE_PASSWORD === "true";
+    
+    // メール送信レート制限エラーの場合
+    if (message.toLowerCase().includes("rate limit") || message.toLowerCase().includes("email rate limit")) {
+      if (isDevMode) {
+        message = `メール送信レート制限に達しました。\n\n開発環境では、Supabaseダッシュボードで「Disable email confirmations」を有効にしてください。\n設定場所: Authentication > Settings > Email Auth > Disable email confirmations`;
+      } else {
+        message = "メール送信レート制限に達しました。しばらく時間をおいてから再度お試しください。";
+      }
+    }
+    
+    // 開発環境では、メールアドレスエラーに対してより分かりやすいメッセージを表示
+    if (isDevMode && message.includes("invalid") && message.includes("email")) {
+      message = `${message}\n\n開発環境では、実際に存在するメールアドレス形式を使用してください。\n例: admin@test.com, admin@localhost.local など`;
+    }
+    
     return {
-      message: supabaseError.message || "認証エラーが発生しました",
+      message,
       code: supabaseError.status?.toString(),
     };
   }
@@ -89,10 +127,13 @@ export const authService: AuthService = {
     }
 
     if (!validatePassword(password)) {
+      const isDevMode = process.env.NODE_ENV === "development" || process.env.ALLOW_SIMPLE_PASSWORD === "true";
       return {
         success: false,
         error: {
-          message: "パスワードは8文字以上で、英数字を含む必要があります",
+          message: isDevMode
+            ? "パスワードは4文字以上である必要があります"
+            : "パスワードは8文字以上で、英数字を含む必要があります",
         },
       };
     }

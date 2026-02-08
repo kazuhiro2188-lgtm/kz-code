@@ -39,12 +39,20 @@ export async function generateMetadata({
  */
 export default async function CoursePage({ params }: CoursePageProps) {
   const { courseId } = await params;
+  
+  // 認証が無効化されている場合はダミーユーザーIDを使用
+  const isAuthDisabled = process.env.DISABLE_AUTH === "true";
+  const dummyUserId = "00000000-0000-0000-0000-000000000000";
+
   const supabase = await createServerSupabaseClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  // 認証が無効化されている場合はダミーユーザーを使用
+  const currentUser = isAuthDisabled ? { id: dummyUserId } : (user || { id: dummyUserId });
+
+  if (!isAuthDisabled && !user) {
     notFound();
   }
 
@@ -64,19 +72,21 @@ export default async function CoursePage({ params }: CoursePageProps) {
     section.lessons.map((lesson) => lesson.id)
   );
 
-  // 各レッスンの完了ステータスを取得
+  // 各レッスンの完了ステータスを取得（認証無効時は空のマップ）
   const lessonStatuses = new Map<string, LessonStatus>();
-  await Promise.all(
-    allLessonIds.map(async (lessonId) => {
-      const statusResult = await progressService.getLessonStatus(
-        user.id,
-        lessonId
-      );
-      if (statusResult.success) {
-        lessonStatuses.set(lessonId, statusResult.data);
-      }
-    })
-  );
+  if (!isAuthDisabled) {
+    await Promise.all(
+      allLessonIds.map(async (lessonId) => {
+        const statusResult = await progressService.getLessonStatus(
+          currentUser.id,
+          lessonId
+        );
+        if (statusResult.success) {
+          lessonStatuses.set(lessonId, statusResult.data);
+        }
+      })
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-4 sm:py-6 md:py-8 px-4 sm:px-6 lg:px-8">

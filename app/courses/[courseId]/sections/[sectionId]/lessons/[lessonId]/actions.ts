@@ -13,6 +13,12 @@ import { redirect } from "next/navigation";
 export async function completeLessonAction(
   lessonId: string
 ): Promise<{ error: string | null }> {
+  // 認証が無効化されている場合はスキップ
+  const isAuthDisabled = process.env.DISABLE_AUTH === "true";
+  if (isAuthDisabled) {
+    return { error: null }; // 認証無効時は成功として扱う
+  }
+
   // 現在のユーザーを取得
   const supabase = await createServerSupabaseClient();
   const {

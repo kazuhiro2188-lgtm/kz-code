@@ -15,26 +15,31 @@ export const metadata: Metadata = {
  * 既にオンボーディングが完了している場合はダッシュボードへリダイレクトします。
  */
 export default async function OnboardingPage() {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // 認証が無効化されている場合は認証チェックをスキップ
+  const isAuthDisabled = process.env.DISABLE_AUTH === "true";
 
-  // 未認証ユーザーはログインページへリダイレクト（ミドルウェアでも処理されますが、念のため）
-  if (!user) {
-    redirect("/login");
-  }
+  if (!isAuthDisabled) {
+    const supabase = await createServerSupabaseClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  // オンボーディングが既に完了している場合はダッシュボードへリダイレクト
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("onboarding_completed")
-    .eq("id", user.id)
-    .single();
+    // 未認証ユーザーはログインページへリダイレクト（ミドルウェアでも処理されますが、念のため）
+    if (!user) {
+      redirect("/login");
+    }
 
-  // プロフィールが存在し、オンボーディングが完了している場合はダッシュボードへリダイレクト
-  if (!profileError && profile && (profile as { onboarding_completed: boolean }).onboarding_completed) {
-    redirect("/dashboard");
+    // オンボーディングが既に完了している場合はダッシュボードへリダイレクト
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("onboarding_completed")
+      .eq("id", user.id)
+      .single();
+
+    // プロフィールが存在し、オンボーディングが完了している場合はダッシュボードへリダイレクト
+    if (!profileError && profile && (profile as { onboarding_completed: boolean }).onboarding_completed) {
+      redirect("/dashboard");
+    }
   }
 
   // プロフィールが存在しない場合（新規ユーザー）はオンボーディングを表示

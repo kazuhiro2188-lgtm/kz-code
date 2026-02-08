@@ -33,18 +33,29 @@ type ChatRequest = {
  */
 export async function POST(request: NextRequest) {
   try {
-    // 認証チェック
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    // 認証が無効化されている場合はダミーユーザーIDを使用
+    const isAuthDisabled = process.env.DISABLE_AUTH === "true";
+    const dummyUserId = "00000000-0000-0000-0000-000000000000";
 
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: "認証が必要です" },
-        { status: 401 }
-      );
+    let currentUserId: string;
+    
+    if (isAuthDisabled) {
+      currentUserId = dummyUserId;
+    } else {
+      // 認証チェック
+      const supabase = await createServerSupabaseClient();
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        return NextResponse.json(
+          { error: "認証が必要です" },
+          { status: 401 }
+        );
+      }
+      currentUserId = user.id;
     }
 
     // リクエストボディの取得と検証
@@ -76,11 +87,11 @@ export async function POST(request: NextRequest) {
       // エラーが発生しても続行（コンテキストなしで処理）
     }
 
-    // 会話履歴の取得または新規作成
+    // 会話履歴の取得または新規作成（認証無効時はスキップ）
     let conversationId = body.conversationId;
     let conversationHistory: ChatMessage[] = [];
 
-    if (conversationId) {
+    if (!isAuthDisabled && conversationId) {
       // 既存の会話履歴を取得
       const historyResult = await chatService.getConversationHistory(conversationId);
       if (historyResult.success && historyResult.data) {
@@ -93,21 +104,29 @@ export async function POST(request: NextRequest) {
         // 会話が見つからない場合は新規作成
         conversationId = undefined;
       }
+    } else if (isAuthDisabled) {
+      // 認証無効時は会話IDをクリア
+      conversationId = undefined;
     }
 
-    // 会話が存在しない場合は新規作成
+    // 会話が存在しない場合は新規作成（認証無効時はスキップ）
     if (!conversationId) {
-      const conversationResult = await chatService.saveConversation(
-        user.id,
-        body.lessonId || null
-      );
-      if (!conversationResult.success) {
-        return NextResponse.json(
-          { error: conversationResult.error.message },
-          { status: 500 }
+      if (isAuthDisabled) {
+        // 認証無効時はダミーの会話IDを使用
+        conversationId = "dummy-conversation-id";
+      } else {
+        const conversationResult = await chatService.saveConversation(
+          currentUserId,
+          body.lessonId || null
         );
+        if (!conversationResult.success) {
+          return NextResponse.json(
+            { error: conversationResult.error.message },
+            { status: 500 }
+          );
+        }
+        conversationId = conversationResult.data.id;
       }
-      conversationId = conversationResult.data.id;
     }
 
     // ユーザーメッセージを会話履歴に追加
@@ -117,15 +136,17 @@ export async function POST(request: NextRequest) {
     };
     const messages: ChatMessage[] = [...conversationHistory, userMessage];
 
-    // ユーザーメッセージを保存
-    const saveUserMessageResult = await chatService.saveMessage(
-      conversationId,
-      "user",
-      body.message
-    );
-    if (!saveUserMessageResult.success) {
-      // メッセージ保存に失敗してもストリーミングは続行
-      console.error("ユーザーメッセージの保存に失敗:", saveUserMessageResult.error);
+    // ユーザーメッセージを保存（認証無効時はスキップ）
+    if (!isAuthDisabled) {
+      const saveUserMessageResult = await chatService.saveMessage(
+        conversationId,
+        "user",
+        body.message
+      );
+      if (!saveUserMessageResult.success) {
+        // メッセージ保存に失敗してもストリーミングは続行
+        console.error("ユーザーメッセージの保存に失敗:", saveUserMessageResult.error);
+      }
     }
 
     // ClaudeService を呼び出してストリーミング応答を生成
@@ -165,8 +186,8 @@ export async function POST(request: NextRequest) {
                 const sseData = `data: ${JSON.stringify({ type: "done" })}\n\n`;
                 controller.enqueue(encoder.encode(sseData));
 
-                // アシスタントメッセージを保存
-                if (assistantMessageContent.trim().length > 0) {
+                // アシスタントメッセージを保存（認証無効時はスキップ）
+                if (!isAuthDisabled && assistantMessageContent.trim().length > 0) {
                   const saveAssistantMessageResult = await chatService.saveMessage(
                     conversationId!,
                     "assistant",
@@ -190,8 +211,8 @@ export async function POST(request: NextRequest) {
           }
 
           if (!done) {
-            // ストリームが予期せず終了した場合
-            if (assistantMessageContent.trim().length > 0) {
+            // ストリームが予期せず終了した場合（認証無効時はスキップ）
+            if (!isAuthDisabled && assistantMessageContent.trim().length > 0) {
               const saveAssistantMessageResult = await chatService.saveMessage(
                 conversationId!,
                 "assistant",

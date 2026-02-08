@@ -49,12 +49,20 @@ export async function generateMetadata({
  */
 export default async function LessonPage({ params }: LessonPageProps) {
   const { courseId, sectionId, lessonId } = await params;
+  
+  // 認証が無効化されている場合はダミーユーザーIDを使用
+  const isAuthDisabled = process.env.DISABLE_AUTH === "true";
+  const dummyUserId = "00000000-0000-0000-0000-000000000000";
+
   const supabase = await createServerSupabaseClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
+  // 認証が無効化されている場合はダミーユーザーを使用
+  const currentUser = isAuthDisabled ? { id: dummyUserId } : (user || { id: dummyUserId });
+
+  if (!isAuthDisabled && !user) {
     notFound();
   }
 
@@ -91,8 +99,10 @@ export default async function LessonPage({ params }: LessonPageProps) {
   // MDX をシリアライズ
   const serializedMDX = await mdxSerializer.serialize(contentResult.data);
 
-  // レッスンの完了ステータスを取得
-  const statusResult = await progressService.getLessonStatus(user.id, lessonId);
+  // レッスンの完了ステータスを取得（認証無効時は未完了として扱う）
+  const statusResult = isAuthDisabled
+    ? { success: true as const, data: { lessonId, completed: false, completedAt: null } }
+    : await progressService.getLessonStatus(currentUser.id, lessonId);
   const isCompleted = statusResult.success && statusResult.data.completed;
 
   // 前後レッスンを取得するため、セクション内のレッスン一覧を取得
