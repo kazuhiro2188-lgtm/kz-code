@@ -7,6 +7,9 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
  * 認証状態に応じて適切なページへリダイレクトします。
  * ミドルウェアでも処理されますが、ここでも明示的に処理します。
  */
+// 動的レンダリングを強制（cookiesを使用するため）
+export const dynamic = 'force-dynamic';
+
 export default async function Home() {
   try {
     const supabase = await createServerSupabaseClient();
