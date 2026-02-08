@@ -1,7 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Turbopackのworkspace rootを明示的に設定（警告を回避）
+  experimental: {
+    turbo: {
+      root: process.cwd(),
+    },
+  },
 };
 
 export default nextConfig;
