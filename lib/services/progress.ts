@@ -161,7 +161,7 @@ class ProgressServiceImpl implements ProgressService {
         user_id: userId,
         lesson_id: lessonId,
         completed_at: new Date().toISOString(),
-      });
+      } as never);
 
       if (error) {
         // 重複エラー（23505）の場合は成功として扱う
@@ -270,7 +270,7 @@ class ProgressServiceImpl implements ProgressService {
       }
 
       const totalLearningTime =
-        history?.reduce((sum, h) => sum + (h.duration_seconds || 0), 0) || 0;
+        history?.reduce((sum, h) => sum + ((h as { duration_seconds?: number }).duration_seconds || 0), 0) || 0;
 
       // 最近の活動を取得（最新10件）
       const { data: recentHistory, error: recentError } = await supabase
@@ -285,12 +285,13 @@ class ProgressServiceImpl implements ProgressService {
       const recentActivity: RecentActivity[] = [];
       if (!recentError && recentHistory) {
         for (const item of recentHistory) {
-          const lesson = item.lessons as { title: string };
+          const itemTyped = item as { lesson_id: string; accessed_at: string; duration_seconds?: number; lessons: { title: string } };
+          const lesson = itemTyped.lessons;
           recentActivity.push({
-            lessonId: item.lesson_id,
+            lessonId: itemTyped.lesson_id,
             lessonTitle: lesson?.title || "不明なレッスン",
-            accessedAt: item.accessed_at,
-            duration: item.duration_seconds || 0,
+            accessedAt: itemTyped.accessed_at,
+            duration: itemTyped.duration_seconds || 0,
           });
         }
       }
@@ -365,7 +366,7 @@ class ProgressServiceImpl implements ProgressService {
         };
       }
 
-      const sectionIds = sections?.map((s) => s.id) || [];
+      const sectionIds = sections?.map((s) => (s as { id: string }).id) || [];
       if (sectionIds.length === 0) {
         return {
           success: true,
@@ -397,7 +398,7 @@ class ProgressServiceImpl implements ProgressService {
       }
 
       // 完了レッスン数を取得
-      const lessonIds = courseLessons.map((l) => l.id);
+      const lessonIds = courseLessons.map((l) => (l as { id: string }).id);
       const { data: completedLessons, error: completedError } = await supabase
         .from("lesson_completions")
         .select("lesson_id")
@@ -467,7 +468,7 @@ class ProgressServiceImpl implements ProgressService {
         data: {
           lessonId,
           completed: !!completion,
-          completedAt: completion?.completed_at || null,
+          completedAt: completion ? (completion as { completed_at: string }).completed_at : null,
         },
       };
     } catch (error) {
@@ -526,7 +527,7 @@ class ProgressServiceImpl implements ProgressService {
         lesson_id: lessonId,
         duration_seconds: duration,
         accessed_at: new Date().toISOString(),
-      });
+      } as never);
 
       if (error) {
         // RLS ポリシー違反の可能性
