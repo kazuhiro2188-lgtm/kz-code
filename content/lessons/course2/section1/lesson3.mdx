@@ -1,0 +1,99 @@
+# AI開発におけるクリーンアーキテクチャの適用
+
+## はじめに
+
+このレッスンでは、**AI開発**において**クリーンアーキテクチャ**をどのように適用するかを学びます。
+
+## AI開発の課題
+
+AI開発には、以下のような課題があります：
+
+- **外部APIへの依存**: Claude API、OpenAI APIなどの外部サービスへの依存
+- **プロンプト管理の複雑さ**: プロンプトの設計と管理が複雑
+- **データフローの複雑さ**: 入力データの前処理、後処理が複雑
+- **テストの困難さ**: AIモデルの動作を予測することが困難
+
+## クリーンアーキテクチャの適用
+
+### エンティティ層: AIモデルとドメインモデル
+
+AIモデル自体や、AIが扱うドメインモデルをエンティティ層に配置します。
+
+```typescript
+// エンティティ層
+interface AIModel {
+  id: string;
+  name: string;
+  capabilities: string[];
+}
+
+interface PromptTemplate {
+  id: string;
+  template: string;
+  variables: string[];
+}
+```
+
+### ユースケース層: AI活用のビジネスロジック
+
+AIを活用する具体的なユースケースを定義します。
+
+```typescript
+// ユースケース層
+class GenerateCodeUseCase {
+  constructor(
+    private promptService: PromptService,
+    private aiService: AIService
+  ) {}
+  
+  async execute(requirements: string): Promise<string> {
+    const prompt = await this.promptService.buildPrompt(requirements);
+    const code = await this.aiService.generate(prompt);
+    return code;
+  }
+}
+```
+
+### インターフェース層: AIサービスの抽象化
+
+外部のAIサービスへのアクセスを抽象化します。
+
+```typescript
+// インターフェース層
+interface AIService {
+  generate(prompt: string): Promise<string>;
+}
+
+class ClaudeAIService implements AIService {
+  async generate(prompt: string): Promise<string> {
+    // Claude API呼び出し
+  }
+}
+```
+
+### フレームワーク層: 外部APIクライアント
+
+実際のAPI呼び出しを実装します。
+
+```typescript
+// フレームワーク層
+class ClaudeAPIClient {
+  async callAPI(prompt: string): Promise<string> {
+    // 実際のHTTPリクエスト
+  }
+}
+```
+
+## プロンプト管理の分離
+
+プロンプトの設計と管理を適切なレイヤーに分離します：
+
+- **エンティティ層**: プロンプトテンプレートの定義
+- **ユースケース層**: プロンプトの構築ロジック
+- **インターフェース層**: プロンプトの実行
+
+## まとめ
+
+- AI開発においてもクリーンアーキテクチャの原則は有効
+- 外部APIへの依存をインターフェース層で抽象化
+- プロンプト管理を適切なレイヤーに分離することで保守性が向上

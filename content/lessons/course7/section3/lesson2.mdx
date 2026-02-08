@@ -1,0 +1,114 @@
+# AIワークフローパターン
+
+## はじめに
+
+このレッスンでは、**AIワークフローパターン**について学びます。
+
+## AIワークフローパターン
+
+### 1. シーケンシャルパターン
+
+ステップを順番に実行します。
+
+**例:**
+
+```mermaid
+flowchart LR
+    A[プロンプト構築] --> B[AI API呼び出し]
+    B --> C[レスポンス処理]
+    C --> D[結果表示]
+    
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#e8f5e9
+    style D fill:#fce4ec
+```
+
+### 2. パラレルパターン
+
+複数のステップを並列に実行します。
+
+**例:**
+
+```mermaid
+graph TD
+    A[リクエスト] --> B[AI API 1]
+    A --> C[AI API 2]
+    A --> D[AI API 3]
+    B --> E[結果を統合]
+    C --> E
+    D --> E
+    
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#fff3e0
+    style D fill:#fff3e0
+    style E fill:#e8f5e9
+```
+
+### 3. 条件分岐パターン
+
+条件に応じて異なるステップを実行します。
+
+**例:**
+
+```mermaid
+flowchart TD
+    A[AI API呼び出し] --> B{成功?}
+    B -->|Yes| C[レスポンス処理]
+    B -->|No| D[エラー処理]
+    
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#e8f5e9
+    style D fill:#ffebee
+```
+
+### 4. ループパターン
+
+ステップを繰り返し実行します。
+
+**例:**
+```
+プロンプト構築 → AI API呼び出し → 品質チェック → 不十分？ → プロンプト改善 → 繰り返し
+```
+
+## AI開発におけるパターンの適用
+
+### 1. RAGワークフロー
+
+RAG（Retrieval-Augmented Generation）のワークフローです。
+
+**例:**
+
+```mermaid
+flowchart TD
+    A[質問の入力] --> B[ベクトルDBで関連文書を検索]
+    B --> C[プロンプトに文書を追加]
+    C --> D[AI APIを呼び出し]
+    D --> E[回答を生成]
+    
+    style A fill:#e3f2fd
+    style B fill:#fff3e0
+    style C fill:#e8f5e9
+    style D fill:#fce4ec
+    style E fill:#f3e5f5
+```
+
+### 2. コードレビューワークフロー
+
+コードレビューのワークフローです。
+
+**例:**
+```
+1. コードの入力
+2. AIがコードを分析
+3. 問題点を検出
+4. 改善案を提案
+5. 人間がレビュー
+```
+
+## まとめ
+
+- **AIワークフローパターン**には、シーケンシャル、パラレル、条件分岐、ループがある
+- RAGやコードレビューなどのワークフローに適用可能

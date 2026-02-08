@@ -1,7 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import SignUpForm from "./SignUpForm";
-import { FadeIn, SlideUp } from "@/components/animations/PageTransition";
+
+// アニメーションラッパーを動的インポート
+const FadeInWrapper = dynamic(
+  () => import("@/components/dashboard/DashboardWrapper").then((mod) => mod.FadeInWrapper)
+);
+
+const SlideUpWrapper = dynamic(
+  () => import("@/components/dashboard/DashboardWrapper").then((mod) => mod.SlideUpWrapper)
+);
 
 export const metadata: Metadata = {
   title: "サインアップ - KZ-Code",
@@ -18,7 +27,7 @@ export default function SignUpPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-900 dark:to-gray-900 px-4 py-12">
       <div className="max-w-md w-full space-y-8">
         {/* ヘッダーセクション */}
-        <FadeIn>
+        <FadeInWrapper>
           <div className="text-center">
             <div className="mb-6">
               <div className="inline-flex items-center gap-3 mb-2">
@@ -39,10 +48,10 @@ export default function SignUpPage() {
               </p>
             </div>
           </div>
-        </FadeIn>
+        </FadeInWrapper>
 
         {/* フォームカード */}
-        <SlideUp delay={0.2}>
+        <SlideUpWrapper delay={0.2}>
           <div className="relative group">
             {/* グラデーション背景エフェクト */}
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-3xl blur-xl opacity-20 dark:opacity-10 animate-pulse" />
@@ -70,7 +79,7 @@ export default function SignUpPage() {
               </div>
             </div>
           </div>
-        </SlideUp>
+        </SlideUpWrapper>
       </div>
     </div>
   );

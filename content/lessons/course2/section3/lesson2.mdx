@@ -1,0 +1,103 @@
+# 境界づけられたコンテキスト
+
+## はじめに
+
+このレッスンでは、**境界づけられたコンテキスト（Bounded Context）**について詳しく学びます。
+
+## 境界づけられたコンテキストとは
+
+**境界づけられたコンテキスト**は、特定のドメインモデルが有効な範囲を定義する境界です。
+
+### 主な特徴
+
+- **明確な境界**: ドメインモデルが有効な範囲を明確に定義
+- **独立したモデル**: 各コンテキストは独自のドメインモデルを持つ
+- **チームの責任範囲**: チームの責任範囲を明確にする
+
+## なぜ必要か
+
+大規模なシステムでは、同じ概念でも文脈によって意味が異なることがあります。
+
+**例:**
+- **注文コンテキスト**の「商品」: 注文可能な商品、価格、在庫状況
+- **配送コンテキスト**の「商品」: 配送可能な商品、重量、サイズ
+- **在庫コンテキスト**の「商品」: 在庫管理対象の商品、数量、保管場所
+
+## コンテキストマッピング
+
+複数の境界づけられたコンテキスト間の関係を定義することを**コンテキストマッピング**と呼びます。
+
+### 関係の種類
+
+1. **共有カーネル（Shared Kernel）**: 共通のモデルを共有
+2. **顧客/供給者（Customer/Supplier）**: 一方が他方に依存
+3. **順応者（Conformist）**: 外部システムに従う
+4. **腐敗防止層（Anti-Corruption Layer）**: 外部システムの影響を防ぐ
+5. **公開ホストサービス（Open Host Service）**: 共通のプロトコルを公開
+6. **公表言語（Published Language）**: 標準化された言語を使用
+
+## 実践例
+
+### ECサイトの例
+
+```mermaid
+graph LR
+    A["注文コンテキスト<br>注文エンティティ<br>注文アイテム"] -->|コンテキストマッピング| B["配送コンテキスト<br>配送エンティティ<br>配送先情報"]
+    
+    style A fill:#e1f5ff
+    style B fill:#fff4e1
+```
+
+### 実装例
+
+```typescript
+// 注文コンテキスト
+namespace OrderContext {
+  export class Order {
+    constructor(
+      public readonly id: string,
+      public items: OrderItem[]
+    ) {}
+  }
+  
+  export class OrderItem {
+    constructor(
+      public productId: string,
+      public quantity: number,
+      public price: number
+    ) {}
+  }
+}
+
+// 配送コンテキスト
+namespace ShippingContext {
+  export class Shipment {
+    constructor(
+      public readonly id: string,
+      public items: ShipmentItem[]
+    ) {}
+  }
+  
+  export class ShipmentItem {
+    constructor(
+      public productId: string,
+      public weight: number,
+      public dimensions: Dimensions
+    ) {}
+  }
+}
+```
+
+## AI開発における適用
+
+AI開発においても、境界づけられたコンテキストは有効です：
+
+- **プロンプト管理コンテキスト**: プロンプトテンプレート、変数管理
+- **コード生成コンテキスト**: コード生成、実行管理
+- **学習コンテキスト**: 学習データ、モデル管理
+
+## まとめ
+
+- **境界づけられたコンテキスト**はドメインモデルが有効な範囲を定義
+- コンテキストマッピングにより、複数のコンテキスト間の関係を管理
+- AI開発においても、適切なコンテキスト分割により保守性が向上

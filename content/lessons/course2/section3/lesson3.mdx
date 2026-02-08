@@ -1,0 +1,175 @@
+# エンティティと値オブジェクト
+
+## はじめに
+
+このレッスンでは、**エンティティ**と**値オブジェクト**の詳細な設計方法について学びます。
+
+## エンティティの設計
+
+### エンティティの特徴
+
+エンティティは、以下の特徴を持ちます：
+
+- **一意の識別子**: IDによって識別される
+- **可変性**: 属性が変更されても同じエンティティ
+- **ライフサイクル**: 作成、変更、削除のライフサイクルを持つ
+
+### エンティティの設計例
+
+```typescript
+// ユーザーエンティティ
+class User {
+  constructor(
+    public readonly id: UserId,
+    private name: UserName,
+    private email: Email
+  ) {}
+  
+  changeName(newName: UserName): void {
+    this.name = newName;
+  }
+  
+  changeEmail(newEmail: Email): void {
+    this.email = newEmail;
+  }
+  
+  equals(other: User): boolean {
+    return this.id.equals(other.id);
+  }
+}
+
+// ID値オブジェクト
+class UserId {
+  constructor(public readonly value: string) {}
+  
+  equals(other: UserId): boolean {
+    return this.value === other.value;
+  }
+}
+```
+
+### エンティティの設計原則
+
+1. **識別子の重要性**: IDは不変で一意である必要がある
+2. **ビジネスロジックの配置**: エンティティにビジネスロジックを含める
+3. **不変性の確保**: 可能な限り不変に保つ
+
+## 値オブジェクトの設計
+
+### 値オブジェクトの特徴
+
+値オブジェクトは、以下の特徴を持ちます：
+
+- **識別子なし**: IDを持たない
+- **不変性**: 作成後は変更されない
+- **値による比較**: 属性の値で比較される
+
+### 値オブジェクトの設計例
+
+```typescript
+// Email値オブジェクト
+class Email {
+  constructor(public readonly value: string) {
+    if (!this.isValid(value)) {
+      throw new Error('Invalid email format');
+    }
+  }
+  
+  private isValid(email: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+  
+  equals(other: Email): boolean {
+    return this.value === other.value;
+  }
+}
+
+// Money値オブジェクト
+class Money {
+  constructor(
+    public readonly amount: number,
+    public readonly currency: string
+  ) {
+    if (amount < 0) {
+      throw new Error('Amount cannot be negative');
+    }
+    if (!['JPY', 'USD', 'EUR'].includes(currency)) {
+      throw new Error('Invalid currency');
+    }
+  }
+  
+  add(other: Money): Money {
+    if (this.currency !== other.currency) {
+      throw new Error('Cannot add different currencies');
+    }
+    return new Money(this.amount + other.amount, this.currency);
+  }
+  
+  equals(other: Money): boolean {
+    return this.amount === other.amount && this.currency === other.currency;
+  }
+}
+```
+
+### 値オブジェクトの設計原則
+
+1. **不変性**: 作成後は変更されない
+2. **自己完結性**: 必要なバリデーションを含む
+3. **値による比較**: equalsメソッドを実装
+
+## エンティティと値オブジェクトの使い分け
+
+### エンティティを使う場合
+
+- 識別子が必要な場合
+- 時間が経っても追跡する必要がある場合
+- 属性が変更されても同じオブジェクトとして扱う場合
+
+**例:** ユーザー、注文、商品
+
+### 値オブジェクトを使う場合
+
+- 識別子が不要な場合
+- 属性の値が重要で、同一性が不要な場合
+- 不変であるべき場合
+
+**例:** Email、Money、Address、DateRange
+
+## AI開発における適用
+
+AI開発においても、エンティティと値オブジェクトは有効です：
+
+```typescript
+// プロンプトエンティティ
+class Prompt {
+  constructor(
+    public readonly id: PromptId,
+    private template: PromptTemplate,
+    private variables: PromptVariables
+  ) {}
+  
+  updateTemplate(newTemplate: PromptTemplate): void {
+    this.template = newTemplate;
+  }
+}
+
+// プロンプトテンプレート値オブジェクト
+class PromptTemplate {
+  constructor(public readonly value: string) {
+    if (!this.isValid(value)) {
+      throw new Error('Invalid template');
+    }
+  }
+  
+  private isValid(template: string): boolean {
+    // バリデーションロジック
+    return true;
+  }
+}
+```
+
+## まとめ
+
+- **エンティティ**は識別子を持ち、可変である
+- **値オブジェクト**は識別子を持たず、不変である
+- 適切に使い分けることで、ドメインモデルの表現力が向上する

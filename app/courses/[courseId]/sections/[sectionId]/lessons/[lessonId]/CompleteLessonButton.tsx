@@ -2,8 +2,13 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import { completeLessonAction } from "./actions";
 import { RippleButton } from "@/components/animations/InteractiveElements";
+import UnderstandingLevelSelector from "@/components/lessons/UnderstandingLevelSelector";
+import type { UnderstandingLevel } from "@/lib/data/understanding-levels";
+import { shouldRecommendReview } from "@/lib/data/understanding-levels";
+import Link from "next/link";
 
 /**
  * CompleteLessonButton コンポーネントの Props
@@ -11,26 +16,52 @@ import { RippleButton } from "@/components/animations/InteractiveElements";
 type CompleteLessonButtonProps = {
   lessonId: string;
   isCompleted: boolean;
+  /**
+   * 次のレッスン情報（復習推奨時に表示）
+   */
+  nextLesson?: {
+    courseId: string;
+    sectionId: string;
+    lessonId: string;
+  };
 };
 
 /**
  * レッスン完了ボタンコンポーネント
  * 
  * Client Component として実装され、レッスン完了の処理を担当します。
+ * 理解度選択機能を統合しています。
  */
 export default function CompleteLessonButton({
   lessonId,
   isCompleted,
+  nextLesson,
 }: CompleteLessonButtonProps) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [showUnderstandingSelector, setShowUnderstandingSelector] = useState(false);
+  const [selectedUnderstandingLevel, setSelectedUnderstandingLevel] = useState<UnderstandingLevel | null>(null);
+  const [showReviewRecommendation, setShowReviewRecommendation] = useState(false);
 
   const handleComplete = () => {
     setError(null);
+    // 理解度選択モーダルを表示
+    setShowUnderstandingSelector(true);
+  };
 
+  const handleUnderstandingSelect = async (level: UnderstandingLevel) => {
+    setSelectedUnderstandingLevel(level);
+    setShowUnderstandingSelector(false);
+
+    // 復習推奨の判定
+    if (shouldRecommendReview(level)) {
+      setShowReviewRecommendation(true);
+    }
+
+    // レッスン完了処理を実行
     startTransition(async () => {
-      const result = await completeLessonAction(lessonId);
+      const result = await completeLessonAction(lessonId, level);
       if (result.error) {
         setError(result.error);
       } else {
@@ -71,6 +102,46 @@ export default function CompleteLessonButton({
         </div>
       )}
 
+      {/* 復習推奨メッセージ */}
+      {showReviewRecommendation && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg"
+        >
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">💡</span>
+            <div className="flex-1">
+              <h4 className="font-semibold text-yellow-800 dark:text-yellow-300 mb-2">
+                復習を推奨します
+              </h4>
+              <p className="text-sm text-yellow-700 dark:text-yellow-400 mb-3">
+                理解度が低いため、このレッスンの復習をおすすめします。
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setShowReviewRecommendation(false);
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm"
+                >
+                  レッスンを復習する
+                </button>
+                {nextLesson && (
+                  <Link
+                    href={`/courses/${nextLesson.courseId}/sections/${nextLesson.sectionId}/lessons/${nextLesson.lessonId}`}
+                    className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-sm"
+                  >
+                    次のレッスンへ進む
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       <RippleButton
         onClick={handleComplete}
         disabled={isPending}
@@ -104,6 +175,14 @@ export default function CompleteLessonButton({
           "レッスンを完了する"
         )}
       </RippleButton>
+
+      {/* 理解度選択モーダル */}
+      {showUnderstandingSelector && (
+        <UnderstandingLevelSelector
+          onSelect={handleUnderstandingSelect}
+          onClose={() => setShowUnderstandingSelector(false)}
+        />
+      )}
     </div>
   );
 }

@@ -1,0 +1,150 @@
+# ポートとアダプター
+
+## はじめに
+
+このレッスンでは、**ポートとアダプター**の詳細な設計方法について学びます。
+
+## ポートの設計
+
+ポートは、アプリケーションのコアロジックと外部システムを接続するためのインターフェースです。
+
+### 入力ポートの設計
+
+入力ポートは、アプリケーションを駆動するためのインターフェースです。
+
+**設計原則:**
+- コアロジックに依存する
+- 技術的詳細を含まない
+- ユースケースを表現する
+
+**例:**
+```typescript
+// 入力ポート
+interface CreateUserUseCase {
+  execute(userData: CreateUserRequest): Promise<User>;
+}
+
+interface GetUserUseCase {
+  execute(userId: string): Promise<User>;
+}
+```
+
+### 出力ポートの設計
+
+出力ポートは、アプリケーションが外部システムを使用するためのインターフェースです。
+
+**設計原則:**
+- コアロジックによって定義される
+- 技術的詳細を含まない
+- 必要な操作のみを定義する
+
+**例:**
+```typescript
+// 出力ポート
+interface UserRepository {
+  findById(id: string): Promise<User | null>;
+  save(user: User): Promise<void>;
+  delete(id: string): Promise<void>;
+}
+
+interface EmailService {
+  send(to: string, subject: string, body: string): Promise<void>;
+}
+```
+
+## アダプターの実装
+
+アダプターは、ポートの実装です。外部システムとの実際の接続を担当します。
+
+### 入力アダプターの実装
+
+入力アダプターは、外部からのリクエストを受け取り、入力ポートを呼び出します。
+
+**例:**
+```typescript
+// REST APIアダプター
+class UserController {
+  constructor(private createUserUseCase: CreateUserUseCase) {}
+  
+  async createUser(req: Request, res: Response) {
+    const user = await this.createUserUseCase.execute(req.body);
+    res.json(user);
+  }
+}
+
+// CLIアダプター
+class UserCLI {
+  constructor(private createUserUseCase: CreateUserUseCase) {}
+  
+  async createUser(args: string[]) {
+    const userData = this.parseArgs(args);
+    const user = await this.createUserUseCase.execute(userData);
+    console.log(`User created: ${user.id}`);
+  }
+}
+```
+
+### 出力アダプターの実装
+
+出力アダプターは、出力ポートを実装し、外部システムにアクセスします。
+
+**例:**
+```typescript
+// データベースアダプター
+class PostgreSQLUserRepository implements UserRepository {
+  constructor(private db: Database) {}
+  
+  async findById(id: string): Promise<User | null> {
+    const row = await this.db.query('SELECT * FROM users WHERE id = $1', [id]);
+    return row ? this.toUser(row) : null;
+  }
+  
+  async save(user: User): Promise<void> {
+    await this.db.query(
+      'INSERT INTO users (id, name) VALUES ($1, $2)',
+      [user.id, user.name]
+    );
+  }
+}
+
+// 外部APIアダプター
+class SendGridEmailService implements EmailService {
+  async send(to: string, subject: string, body: string): Promise<void> {
+    // SendGrid API呼び出し
+  }
+}
+```
+
+## テスト容易性
+
+ポートとアダプターの分離により、テストが容易になります：
+
+```typescript
+// モックアダプター
+class MockUserRepository implements UserRepository {
+  private users: Map<string, User> = new Map();
+  
+  async findById(id: string): Promise<User | null> {
+    return this.users.get(id) || null;
+  }
+  
+  async save(user: User): Promise<void> {
+    this.users.set(user.id, user);
+  }
+}
+
+// テスト
+describe('UserService', () => {
+  it('should get user', async () => {
+    const mockRepo = new MockUserRepository();
+    const service = new UserService(mockRepo);
+    // テスト実行
+  });
+});
+```
+
+## まとめ
+
+- ポートはインターフェース、アダプターは実装
+- 入力ポートと出力ポートを適切に設計する
+- アダプターをモックしてテスト可能にする

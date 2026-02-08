@@ -1,0 +1,137 @@
+# AI統合におけるヘキサゴナルアーキテクチャ
+
+## はじめに
+
+このレッスンでは、**AI統合**において**ヘキサゴナルアーキテクチャ**をどのように適用するかを学びます。
+
+## AI統合の課題
+
+AIを統合する際には、以下の課題があります：
+
+- **外部APIへの依存**: Claude API、OpenAI APIなどの外部サービスへの依存
+- **プロンプト管理**: プロンプトの設計と管理が複雑
+- **レスポンス処理**: AIからのレスポンスの処理と変換
+- **エラーハンドリング**: APIエラーやタイムアウトの処理
+
+## ポートとアダプターの適用
+
+### 出力ポート: AIサービスインターフェース
+
+AIサービスへのアクセスを抽象化するポートを定義します。
+
+```typescript
+// 出力ポート
+interface AIService {
+  generate(prompt: string, options?: AIGenerateOptions): Promise<string>;
+  stream(prompt: string, options?: AIGenerateOptions): Promise<ReadableStream>;
+}
+
+interface AIGenerateOptions {
+  temperature?: number;
+  maxTokens?: number;
+  model?: string;
+}
+```
+
+### 出力アダプター: AI APIクライアント
+
+実際のAI APIへのアクセスを実装します。
+
+```typescript
+// Claude APIアダプター
+class ClaudeAIService implements AIService {
+  constructor(private apiKey: string) {}
+  
+  async generate(prompt: string, options?: AIGenerateOptions): Promise<string> {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: options?.model || 'claude-3-sonnet-20240229',
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: options?.maxTokens || 1024,
+      }),
+    });
+    
+    const data = await response.json();
+    return data.content[0].text;
+  }
+  
+  async stream(prompt: string, options?: AIGenerateOptions): Promise<ReadableStream> {
+    // ストリーミング実装
+  }
+}
+```
+
+### 入力ポート: AI活用ユースケース
+
+AIを活用するユースケースを定義します。
+
+```typescript
+// 入力ポート
+interface GenerateCodeUseCase {
+  execute(requirements: string): Promise<string>;
+}
+
+interface AnswerQuestionUseCase {
+  execute(question: string, context: string): Promise<string>;
+}
+```
+
+### 入力アダプター: APIエンドポイント
+
+外部からのリクエストを受け取り、ユースケースを呼び出します。
+
+```typescript
+// REST APIアダプター
+class AIController {
+  constructor(
+    private generateCodeUseCase: GenerateCodeUseCase,
+    private answerQuestionUseCase: AnswerQuestionUseCase
+  ) {}
+  
+  async generateCode(req: Request, res: Response) {
+    const code = await this.generateCodeUseCase.execute(req.body.requirements);
+    res.json({ code });
+  }
+  
+  async answerQuestion(req: Request, res: Response) {
+    const answer = await this.answerQuestionUseCase.execute(
+      req.body.question,
+      req.body.context
+    );
+    res.json({ answer });
+  }
+}
+```
+
+## プロンプト管理の分離
+
+プロンプトの設計と管理もポートとアダプターで分離します：
+
+```typescript
+// 出力ポート
+interface PromptService {
+  buildPrompt(template: string, variables: Record<string, string>): Promise<string>;
+}
+
+// 出力アダプター
+class TemplatePromptService implements PromptService {
+  async buildPrompt(template: string, variables: Record<string, string>): Promise<string> {
+    let prompt = template;
+    for (const [key, value] of Object.entries(variables)) {
+      prompt = prompt.replace(`{{${key}}}`, value);
+    }
+    return prompt;
+  }
+}
+```
+
+## まとめ
+
+- AI統合においてもポートとアダプターの分離が有効
+- AIサービスへのアクセスを出力ポートで抽象化
+- プロンプト管理も適切に分離することで保守性が向上

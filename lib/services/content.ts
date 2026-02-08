@@ -1,7 +1,5 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { readFile } from "fs/promises";
 import { join } from "path";
-import { unstable_cache } from "next/cache";
 import {
   staticCourses,
   staticLessons,
@@ -290,120 +288,48 @@ class ContentServiceImpl implements ContentService {
   async getCourseWithSectionsAndLessons(
     courseId: string
   ): Promise<Result<{ course: Course; sections: Array<Section & { lessons: Lesson[] }> } | null, ContentError>> {
-    // ISR: コース情報とセクション・レッスン一覧を60秒間キャッシュ（ユーザー非依存データ）
-    return unstable_cache(
-      async () => {
-        try {
-          const supabase = await createServerSupabaseClient();
-
-          // コース情報を取得
-          const courseResult = await this.getCourse(courseId);
-          if (!courseResult.success || !courseResult.data) {
-            return {
-              success: true,
-              data: null,
-            } as Result<{ course: Course; sections: Array<Section & { lessons: Lesson[] }> } | null, ContentError>;
-          }
-
-          // セクション一覧を取得
-          const { data: sectionsData, error: sectionsError } = await supabase
-            .from("sections")
-            .select("*")
-            .eq("course_id", courseId)
-            .order("order_index", { ascending: true });
-
-          if (sectionsError) {
-            return {
-              success: false,
-              error: {
-                message: "セクション一覧の取得に失敗しました",
-                code: sectionsError.code || "UNKNOWN_ERROR",
-              },
-            } as Result<{ course: Course; sections: Array<Section & { lessons: Lesson[] }> } | null, ContentError>;
-          }
-
-          const sectionIds = sectionsData?.map((s) => (s as { id: string }).id) || [];
-          if (sectionIds.length === 0) {
-            return {
-              success: true,
-              data: {
-                course: courseResult.data,
-                sections: [],
-              },
-            } as Result<{ course: Course; sections: Array<Section & { lessons: Lesson[] }> } | null, ContentError>;
-          }
-
-          // レッスン一覧を取得
-          const { data: lessonsData, error: lessonsError } = await supabase
-            .from("lessons")
-            .select("*")
-            .in("section_id", sectionIds)
-            .order("order_index", { ascending: true });
-
-          if (lessonsError) {
-            return {
-              success: false,
-              error: {
-                message: "レッスン一覧の取得に失敗しました",
-                code: lessonsError.code || "UNKNOWN_ERROR",
-              },
-            } as Result<{ course: Course; sections: Array<Section & { lessons: Lesson[] }> } | null, ContentError>;
-          }
-
-          // セクションごとにレッスンをグループ化
-          const sections: Array<Section & { lessons: Lesson[] }> =
-            sectionsData?.map((section) => {
-              const sectionTyped = section as { id: string; course_id: string; title: string; order_index: number; created_at: string };
-              return {
-                id: sectionTyped.id,
-                courseId: sectionTyped.course_id,
-                title: sectionTyped.title,
-                orderIndex: sectionTyped.order_index,
-                createdAt: sectionTyped.created_at,
-                lessons:
-                  lessonsData
-                    ?.filter((lesson) => (lesson as { section_id: string }).section_id === sectionTyped.id)
-                    .map((lesson) => {
-                      const lessonTyped = lesson as { id: string; section_id: string; title: string; content_path: string; order_index: number; created_at: string };
-                      return {
-                        id: lessonTyped.id,
-                        sectionId: lessonTyped.section_id,
-                        courseId: courseId,
-                        title: lessonTyped.title,
-                        contentPath: lessonTyped.content_path,
-                        orderIndex: lessonTyped.order_index,
-                        createdAt: lessonTyped.created_at,
-                      };
-                    }) || [],
-              };
-            }) || [];
-
-          return {
-            success: true,
-            data: {
-              course: courseResult.data,
-              sections,
-            },
-          } as Result<{ course: Course; sections: Array<Section & { lessons: Lesson[] }> } | null, ContentError>;
-        } catch (error) {
-          return {
-            success: false,
-            error: {
-              message:
-                error instanceof Error
-                  ? error.message
-                  : "コース情報の取得中に予期しないエラーが発生しました",
-              code: "UNKNOWN_ERROR",
-            },
-          } as Result<{ course: Course; sections: Array<Section & { lessons: Lesson[] }> } | null, ContentError>;
-        }
-      },
-      [`course-with-sections-${courseId}`],
-      {
-        revalidate: 60, // 60秒間キャッシュ
-        tags: ["courses", `course-${courseId}`, "sections", "lessons"],
+    try {
+      // 静的コースデータから取得
+      const course = getCourseById(courseId);
+      
+      if (!course) {
+        return {
+          success: true,
+          data: null,
+        };
       }
-    )();
+
+      // セクション一覧を取得
+      const sectionsData = getSectionsByCourseId(courseId);
+
+      // 各セクションのレッスン一覧を取得
+      const sections: Array<Section & { lessons: Lesson[] }> = sectionsData.map((section) => {
+        const lessons = getLessonsBySectionId(section.id);
+        return {
+          ...section,
+          lessons,
+        };
+      });
+
+      return {
+        success: true,
+        data: {
+          course,
+          sections,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          message:
+            error instanceof Error
+              ? error.message
+              : "コース情報の取得中に予期しないエラーが発生しました",
+          code: "UNKNOWN_ERROR",
+        },
+      };
+    }
   }
 }
 

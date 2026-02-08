@@ -1,8 +1,19 @@
 "use client";
 
 import { MDXRemote, type MDXRemoteSerializeResult } from "next-mdx-remote";
-import { useMemo } from "react";
-import MermaidRenderer from "./MermaidRenderer";
+import { useMemo, memo } from "react";
+import dynamic from "next/dynamic";
+import GlossaryTerm from "../glossary/GlossaryTerm";
+
+// MermaidRendererを動的インポート（コード分割）
+const MermaidRenderer = dynamic(() => import("./MermaidRenderer"), {
+  loading: () => (
+    <div className="flex items-center justify-center py-8">
+      <div className="animate-pulse text-gray-400 dark:text-gray-600">図解を読み込み中...</div>
+    </div>
+  ),
+  ssr: false, // クライアントサイドのみでレンダリング
+});
 
 /**
  * MDXRenderer の Props
@@ -24,7 +35,7 @@ type MDXRendererProps = {
  * シリアライズ済み MDX をレンダリングします。
  * Client Component として実装され、Mermaid コードブロックを自動検出して MermaidRenderer に委譲します。
  */
-export default function MDXRenderer({ source, isDark = false }: MDXRendererProps) {
+function MDXRenderer({ source, isDark = false }: MDXRendererProps) {
   // カスタムコンポーネントを定義
   const components = useMemo(
     () => ({
@@ -49,7 +60,19 @@ export default function MDXRenderer({ source, isDark = false }: MDXRendererProps
       // MermaidDiagram カスタムコンポーネント（MDXSerializer で生成）
       MermaidDiagram: ({ children }: { children?: React.ReactNode }) => {
         const content = typeof children === "string" ? children : String(children);
-        return <MermaidRenderer content={content.trim()} isDark={isDark} />;
+        const MermaidComponent = MermaidRenderer as React.ComponentType<{ content: string; isDark?: boolean }>;
+        return <MermaidComponent content={content.trim()} isDark={isDark} />;
+      },
+
+      // GlossaryTerm カスタムコンポーネント（用語解説）
+      GlossaryTerm: ({
+        termId,
+        children,
+      }: {
+        termId: string;
+        children?: React.ReactNode;
+      }) => {
+        return <GlossaryTerm termId={termId}>{children}</GlossaryTerm>;
       },
 
       // 見出しのスタイリング
@@ -137,3 +160,6 @@ export default function MDXRenderer({ source, isDark = false }: MDXRendererProps
     </div>
   );
 }
+
+// メモ化してパフォーマンス最適化
+export default memo(MDXRenderer);

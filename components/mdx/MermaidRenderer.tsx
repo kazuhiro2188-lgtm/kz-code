@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, memo } from "react";
 
 /**
  * MermaidRenderer の Props
@@ -22,7 +22,7 @@ type MermaidRendererProps = {
  * Mermaid.js を使用してダイアグラムをレンダリングします。
  * Client Component として実装され、ダークモード対応と遅延読み込みをサポートします。
  */
-export default function MermaidRenderer({
+function MermaidRenderer({
   content,
   isDark = false,
 }: MermaidRendererProps) {
@@ -165,3 +165,6 @@ export default function MermaidRenderer({
     </div>
   );
 }
+
+// メモ化してパフォーマンス最適化
+export default memo(MermaidRenderer);

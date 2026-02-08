@@ -1,0 +1,99 @@
+# Infrastructure as Codeの概念
+
+## はじめに
+
+このレッスンでは、**Infrastructure as Code（IaC）**の概念について学びます。
+
+## Infrastructure as Codeとは
+
+**Infrastructure as Code**は、インフラストラクチャをコードで定義・管理する手法です。
+
+### 主な特徴
+
+- **コード化**: インフラストラクチャをコードで定義
+- **バージョン管理**: Gitなどでバージョン管理
+- **自動化**: インフラストラクチャの自動構築・更新
+- **再現性**: 同じ環境を何度でも再現可能
+
+## IaCの利点
+
+### 1. 一貫性
+
+同じコードから同じ環境を構築できるため、一貫性が保証されます。
+
+### 2. 効率性
+
+手動での構築と比べて、大幅に時間を短縮できます。
+
+### 3. 再現性
+
+同じ環境を何度でも再現できます。
+
+### 4. バージョン管理
+
+インフラストラクチャの変更履歴を追跡できます。
+
+## IaCのツール
+
+### 1. Terraform
+
+HashiCorpが開発したIaCツールです。
+
+**特徴:**
+- 宣言的な記述
+- マルチクラウド対応
+- 状態管理
+
+### 2. AWS CloudFormation
+
+AWSが提供するIaCツールです。
+
+**特徴:**
+- AWS専用
+- JSON/YAMLで記述
+- AWSサービスとの統合
+
+### 3. Ansible
+
+設定管理とオーケストレーションのツールです。
+
+**特徴:**
+- エージェントレス
+- YAMLで記述
+- 幅広い用途
+
+## AI開発におけるIaC
+
+### 推論サーバーの構築
+
+```hcl
+# Terraformの例
+resource "aws_instance" "inference_server" {
+  ami           = "ami-12345678"
+  instance_type = "g4dn.xlarge"
+  
+  tags = {
+    Name = "inference-server"
+  }
+}
+```
+
+### 学習クラスターの構築
+
+```hcl
+resource "aws_instance" "training_cluster" {
+  count         = 4
+  ami           = "ami-12345678"
+  instance_type = "p3.2xlarge"
+  
+  tags = {
+    Name = "training-node-${count.index}"
+  }
+}
+```
+
+## まとめ
+
+- **Infrastructure as Code**はインフラストラクチャをコードで定義・管理
+- 一貫性、効率性、再現性、バージョン管理の利点がある
+- AI開発においても、推論サーバーや学習クラスターの構築に有効

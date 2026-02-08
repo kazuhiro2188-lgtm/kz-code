@@ -1,0 +1,138 @@
+# Terraformの基礎
+
+## はじめに
+
+このレッスンでは、**Terraform**の基礎について学びます。
+
+## Terraformとは
+
+**Terraform**は、HashiCorpが開発したInfrastructure as Codeツールです。
+
+### 主な特徴
+
+- **宣言的な記述**: 望む状態を記述
+- **マルチクラウド対応**: AWS、Azure、GCPなどに対応
+- **状態管理**: インフラストラクチャの状態を管理
+- **プラン機能**: 変更内容を事前に確認
+
+## Terraformの基本構文
+
+### 1. プロバイダーの定義
+
+```hcl
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = "ap-northeast-1"
+}
+```
+
+### 2. リソースの定義
+
+```hcl
+resource "aws_instance" "example" {
+  ami           = "ami-12345678"
+  instance_type = "t3.micro"
+  
+  tags = {
+    Name = "example-instance"
+  }
+}
+```
+
+### 3. 変数の使用
+
+```hcl
+variable "instance_type" {
+  description = "EC2インスタンスタイプ"
+  type        = string
+  default     = "t3.micro"
+}
+
+resource "aws_instance" "example" {
+  instance_type = var.instance_type
+}
+```
+
+## Terraformのコマンド
+
+### 1. terraform init
+
+Terraformの初期化を行います。
+
+```bash
+terraform init
+```
+
+### 2. terraform plan
+
+変更内容を確認します。
+
+```bash
+terraform plan
+```
+
+### 3. terraform apply
+
+変更を適用します。
+
+```bash
+terraform apply
+```
+
+### 4. terraform destroy
+
+リソースを削除します。
+
+```bash
+terraform destroy
+```
+
+## AI開発におけるTerraform
+
+### 推論サーバーの構築
+
+```hcl
+resource "aws_instance" "inference_server" {
+  ami           = var.ami_id
+  instance_type = var.instance_type
+  
+  user_data = <<-EOF
+    #!/bin/bash
+    # 推論サーバーのセットアップスクリプト
+  EOF
+  
+  tags = {
+    Name = "inference-server"
+    Environment = "production"
+  }
+}
+```
+
+### 学習クラスターの構築
+
+```hcl
+resource "aws_instance" "training_node" {
+  count         = var.node_count
+  ami           = var.ami_id
+  instance_type = var.instance_type
+  
+  tags = {
+    Name = "training-node-${count.index}"
+    Role = "training"
+  }
+}
+```
+
+## まとめ
+
+- **Terraform**はInfrastructure as Codeツール
+- 宣言的な記述でインフラストラクチャを定義
+- AI開発においても、推論サーバーや学習クラスターの構築に有効

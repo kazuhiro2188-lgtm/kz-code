@@ -2,12 +2,45 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+// 認証無効化により、Supabaseクライアントは使用していない
 import { contentService } from "@/lib/services/content";
 import { progressService } from "@/lib/services/progress";
 import { mdxSerializer } from "@/lib/mdx/serializer";
-import CompleteLessonButton from "./CompleteLessonButton";
-import { FadeIn, SlideUp } from "@/components/animations/PageTransition";
+import { getQuizBySectionId } from "@/lib/data/quizzes";
+
+// CompleteLessonButtonはClient Componentなので動的インポート
+const CompleteLessonButton = dynamic(() => import("./CompleteLessonButton"), {
+  loading: () => (
+    <div className="flex items-center justify-center py-8">
+      <div className="animate-pulse text-gray-400 dark:text-gray-600">ボタンを読み込み中...</div>
+    </div>
+  ),
+});
+
+// PlaceholderContentはServer Componentなので直接インポート可能（ただし念のため動的インポートに変更）
+const PlaceholderContent = dynamic(() => import("@/components/lessons/PlaceholderContent"));
+
+// アニメーションラッパーを動的インポート
+const FadeInWrapper = dynamic(
+  () => import("@/components/dashboard/DashboardWrapper").then((mod) => mod.FadeInWrapper)
+);
+
+const SlideUpWrapper = dynamic(
+  () => import("@/components/dashboard/DashboardWrapper").then((mod) => mod.SlideUpWrapper)
+);
+
+// ISR: レッスンコンテンツを300秒間キャッシュ（5分）
+// 注: MDXコンテンツは変更頻度が低いため、長めのキャッシュ時間を設定
+export const revalidate = 300;
+
+// 章末課題コンポーネントを動的インポート
+const QuizSection = dynamic(() => import("@/components/quizzes/QuizSection"), {
+  loading: () => (
+    <div className="flex items-center justify-center py-12">
+      <div className="animate-pulse text-gray-400 dark:text-gray-600">課題を読み込み中...</div>
+    </div>
+  ),
+});
 
 // 動的インポートによるコード分割と遅延読み込み
 const MDXRenderer = dynamic(() => import("@/components/mdx/MDXRenderer"), {
@@ -18,7 +51,7 @@ const MDXRenderer = dynamic(() => import("@/components/mdx/MDXRenderer"), {
   ),
 });
 
-// ChatUIはClient Componentなので、Client Componentラッパーで動的インポート
+// ChatUIはClient Componentなので、動的インポート
 const ChatUI = dynamic(() => import("@/components/chat/ChatUI"), {
   loading: () => (
     <div className="flex items-center justify-center h-full">
@@ -34,9 +67,6 @@ type LessonPageProps = {
     lessonId: string;
   }>;
 };
-
-// ISR: 60秒間キャッシュ
-export const revalidate = 60;
 
 export async function generateMetadata({
   params,
@@ -90,31 +120,61 @@ export default async function LessonPage({ params }: LessonPageProps) {
     lessonId
   );
 
+  // デバッグログ（開発環境のみ）
+  if (process.env.NODE_ENV === "development") {
+    console.log("[LessonPage] Debug info:", {
+      courseId,
+      sectionId,
+      lessonId,
+      lessonFound: lessonResult.success && !!lessonResult.data,
+    });
+  }
+
   if (!lessonResult.success || !lessonResult.data) {
+    // デバッグ情報を出力
+    if (process.env.NODE_ENV === "development") {
+      console.error("[LessonPage] Lesson not found:", {
+        courseId,
+        sectionId,
+        lessonId,
+        error: lessonResult.success ? null : lessonResult.error,
+      });
+    }
     notFound();
   }
 
   const lesson = lessonResult.data;
 
+  // 章末課題を取得（セクションごとに1つの課題）
+  const quiz = getQuizBySectionId(sectionId);
+
   // レッスンコンテンツを取得
   const contentResult = await contentService.getLessonContent(lessonId);
 
-  if (!contentResult.success) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
-            <p className="text-red-700 dark:text-red-400">
-              レッスンコンテンツの読み込みに失敗しました: {contentResult.error.message}
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // MDXファイルが存在しない場合はプレースホルダーコンテンツを表示
+  const isContentMissing =
+    !contentResult.success &&
+    contentResult.error?.code === "FILE_READ_ERROR";
 
-  // MDX をシリアライズ
-  const serializedMDX = await mdxSerializer.serialize(contentResult.data);
+  let serializedMDX: Awaited<ReturnType<typeof mdxSerializer.serialize>> | null = null;
+  let mdxSerializationError: Error | null = null;
+
+  if (!isContentMissing && contentResult.success && contentResult.data) {
+    try {
+      // MDX をシリアライズ
+      serializedMDX = await mdxSerializer.serialize(contentResult.data);
+    } catch (error) {
+      // MDXシリアライズエラーをキャッチ
+      mdxSerializationError = error instanceof Error ? error : new Error(String(error));
+      if (process.env.NODE_ENV === "development") {
+        console.error("[LessonPage] MDX serialization error:", {
+          lessonId,
+          error: mdxSerializationError.message,
+          stack: mdxSerializationError.stack,
+        });
+      }
+    }
+  }
 
   // レッスンの完了ステータスを取得（認証無効時は未完了として扱う）
   const statusResult = { success: true as const, data: { lessonId, completed: false, completedAt: null } };
@@ -266,7 +326,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
         </div>
 
         {/* レッスンタイトル */}
-        <FadeIn>
+        <FadeInWrapper>
           <div className="relative mb-6 sm:mb-8">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-pink-600/10 dark:from-blue-500/5 dark:via-purple-500/5 dark:to-pink-500/5 rounded-3xl blur-3xl" />
             <div className="relative bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-2xl p-6 sm:p-8 border border-white/20 dark:border-gray-700/50 shadow-xl">
@@ -275,44 +335,70 @@ export default async function LessonPage({ params }: LessonPageProps) {
               </h1>
             </div>
           </div>
-        </FadeIn>
+        </FadeInWrapper>
 
         {/* MDX コンテンツ */}
-        <SlideUp delay={0.1}>
+        <SlideUpWrapper delay={0.1}>
           <div className="relative group mb-6 sm:mb-8">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-pink-600/20 dark:from-blue-500/10 dark:via-purple-500/10 dark:to-pink-500/10 rounded-3xl blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/50 dark:border-gray-700/50 p-4 sm:p-6 md:p-8">
-              <MDXRenderer source={serializedMDX} isDark={false} />
+              {isContentMissing || mdxSerializationError ? (
+                <PlaceholderContent lesson={lesson} />
+              ) : serializedMDX ? (
+                <MDXRenderer source={serializedMDX} isDark={false} />
+              ) : (
+                <div className="text-center py-12">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400 mx-auto mb-4"></div>
+                  <p className="text-gray-600 dark:text-gray-400">コンテンツを読み込み中...</p>
+                </div>
+              )}
             </div>
           </div>
-        </SlideUp>
+        </SlideUpWrapper>
+
+        {/* 章末課題 */}
+        {quiz && (
+          <SlideUpWrapper delay={0.2}>
+            <QuizSection quiz={quiz} />
+          </SlideUpWrapper>
+        )}
 
         {/* レッスン完了ボタン */}
-        <SlideUp delay={0.2}>
-          <CompleteLessonButton lessonId={lessonId} isCompleted={isCompleted} />
-        </SlideUp>
+        <SlideUpWrapper delay={quiz ? 0.3 : 0.2}>
+          <CompleteLessonButton
+            lessonId={lessonId}
+            isCompleted={isCompleted}
+            nextLesson={nextLesson || undefined}
+          />
+        </SlideUpWrapper>
 
         {/* AI チャット UI */}
-        <SlideUp delay={0.3}>
-          <div className="relative group mt-6 sm:mt-8">
+        <SlideUpWrapper delay={quiz ? 0.4 : 0.3}>
+          <div className="relative group mt-6 sm:mt-8 z-10">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-pink-600/20 dark:from-blue-500/10 dark:via-purple-500/10 dark:to-pink-500/10 rounded-3xl blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <div className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/50 dark:border-gray-700/50 p-4 sm:p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-md">
-                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/50 dark:border-gray-700/50 p-3 sm:p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-md">
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                   </svg>
                 </div>
-                <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+                <h2 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
                   AI アシスタント
                 </h2>
               </div>
-              <div className="h-[400px] sm:h-[500px] md:h-[600px]">
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                AI アシスタントに質問してみましょう
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-500 mb-2">
+                このレッスンに関する質問に答えます
+              </p>
+              <div className="h-[200px] sm:h-[240px] md:h-[280px]">
                 <ChatUI lessonId={lessonId} />
               </div>
             </div>
           </div>
-        </SlideUp>
+        </SlideUpWrapper>
       </div>
     </div>
   );
