@@ -1,26 +1,13 @@
-"use client";
-
 import Link from "next/link";
-import { motion } from "framer-motion";
 
 export default function NotFound() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
-      <motion.div
-        className="text-center max-w-md w-full"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
+      <div className="text-center max-w-md w-full">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
-          <motion.div
-            className="text-6xl mb-4"
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-          >
+          <div className="text-6xl mb-4">
             🔍
-          </motion.div>
+          </div>
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
             404
           </h1>
@@ -65,7 +52,7 @@ export default function NotFound() {
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }
