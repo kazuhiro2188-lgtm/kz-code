@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { motion } from "framer-motion";
 import type { Section, Lesson } from "@/lib/services/content";
 import type { LessonStatus } from "@/lib/services/progress";
 
@@ -62,65 +65,107 @@ export default function SectionLessonList({
                   const isCompleted = status?.completed || false;
 
                   return (
-                    <Link
+                    <motion.div
                       key={lesson.id}
-                      href={`/courses/${courseId}/sections/${section.id}/lessons/${lesson.id}`}
-                      className="group/lesson block relative overflow-hidden focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-xl"
-                      aria-label={`${lesson.title}レッスンを開く${isCompleted ? "（完了済み）" : ""}`}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2 }}
+                      whileHover={{
+                        y: -4,
+                        scale: 1.01,
+                        transition: {
+                          duration: 0.2,
+                          ease: "easeOut",
+                        },
+                      }}
+                      whileTap={{ scale: 0.98 }}
+                      style={{ willChange: "transform" }}
                     >
-                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-purple-500/0 to-pink-500/0 group-hover/lesson:from-blue-500/10 group-hover/lesson:via-purple-500/10 group-hover/lesson:to-pink-500/10 dark:group-hover/lesson:from-blue-500/5 dark:group-hover/lesson:via-purple-500/5 dark:group-hover/lesson:to-pink-500/5 rounded-xl transition-all duration-300" />
-                      <div className="relative flex items-center justify-between p-3 sm:p-4 border border-gray-200/50 dark:border-gray-700/50 rounded-xl hover:border-blue-400/50 dark:hover:border-blue-500/50 hover:shadow-lg transition-all duration-300 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm">
-                        <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-                          {/* 完了ステータスアイコン */}
-                          {isCompleted ? (
-                            <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-md">
-                              <svg
-                                className="w-4 h-4 sm:w-5 sm:h-5 text-white"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
+                      <Link
+                        href={`/courses/${courseId}/sections/${section.id}/lessons/${lesson.id}`}
+                        className="group/lesson block relative overflow-hidden focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-xl"
+                        aria-label={`${lesson.title}レッスンを開く${isCompleted ? "（完了済み）" : ""}`}
+                      >
+                        <motion.div
+                          className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-purple-500/0 to-pink-500/0 group-hover/lesson:from-blue-500/10 group-hover/lesson:via-purple-500/10 group-hover/lesson:to-pink-500/10 dark:group-hover/lesson:from-blue-500/5 dark:group-hover/lesson:via-purple-500/5 dark:group-hover/lesson:to-pink-500/5 rounded-xl"
+                          initial={{ opacity: 0 }}
+                          whileHover={{ opacity: 1 }}
+                          transition={{ duration: 0.3 }}
+                        />
+                        <div className="relative flex items-center justify-between p-3 sm:p-4 border border-gray-200/50 dark:border-gray-700/50 rounded-xl hover:border-blue-400/50 dark:hover:border-blue-500/50 hover:shadow-lg transition-all duration-300 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm">
+                          <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                            {/* 完了ステータスアイコン */}
+                            {isCompleted ? (
+                              <motion.div
+                                className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-md"
+                                whileHover={{
+                                  scale: 1.15,
+                                  rotate: [0, -10, 10, -10, 0],
+                                  transition: { duration: 0.4 },
+                                }}
+                                style={{ willChange: "transform" }}
                               >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M5 13l4 4L19 7"
-                                />
-                              </svg>
-                            </div>
-                          ) : (
-                            <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-gray-700/50" />
-                          )}
-
-                          {/* レッスンタイトル */}
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white group-hover/lesson:text-blue-600 dark:group-hover/lesson:text-blue-400 transition-colors duration-300 line-clamp-2">
-                              {lesson.title}
-                            </h3>
-                            {isCompleted && status?.completedAt && (
-                              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                                完了日: {new Date(status.completedAt).toLocaleDateString("ja-JP")}
-                              </p>
+                                <svg
+                                  className="w-4 h-4 sm:w-5 sm:h-5 text-white"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M5 13l4 4L19 7"
+                                  />
+                                </svg>
+                              </motion.div>
+                            ) : (
+                              <motion.div
+                                className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-gray-700/50"
+                                whileHover={{
+                                  scale: 1.1,
+                                  borderColor: "rgb(59, 130, 246)",
+                                  transition: { duration: 0.2 },
+                                }}
+                                style={{ willChange: "transform" }}
+                              />
                             )}
-                          </div>
-                        </div>
 
-                        {/* 矢印アイコン */}
-                        <svg
-                          className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 dark:text-gray-500 flex-shrink-0 ml-2 sm:ml-4 group-hover/lesson:text-blue-500 dark:group-hover/lesson:text-blue-400 group-hover/lesson:translate-x-1 transition-all duration-300"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 5l7 7-7 7"
-                          />
-                        </svg>
-                      </div>
-                    </Link>
+                            {/* レッスンタイトル */}
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white group-hover/lesson:text-blue-600 dark:group-hover/lesson:text-blue-400 transition-colors duration-300 line-clamp-2">
+                                {lesson.title}
+                              </h3>
+                              {isCompleted && status?.completedAt && (
+                                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                                  完了日: {new Date(status.completedAt).toLocaleDateString("ja-JP")}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* 矢印アイコン */}
+                          <motion.svg
+                            className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 dark:text-gray-500 flex-shrink-0 ml-2 sm:ml-4 group-hover/lesson:text-blue-500 dark:group-hover/lesson:text-blue-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            whileHover={{
+                              x: 4,
+                              transition: { duration: 0.2 },
+                            }}
+                            style={{ willChange: "transform" }}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 5l7 7-7 7"
+                            />
+                          </motion.svg>
+                        </div>
+                      </Link>
+                    </motion.div>
                   );
                 })}
               </div>

@@ -23,21 +23,44 @@ const RecommendedLessonItem = memo(({ lesson, index }: { lesson: Lesson; index: 
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: index * 0.1, duration: 0.3 }}
+      whileHover={{
+        y: -4,
+        scale: 1.02,
+        transition: {
+          duration: 0.2,
+          ease: "easeOut",
+        },
+      }}
+      whileTap={{ scale: 0.98 }}
+      style={{ willChange: "transform" }}
     >
       <Link
         href={`/courses/${lesson.courseId}/sections/${lesson.sectionId}/lessons/${lesson.id}`}
         className="group/lesson block relative overflow-hidden focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-xl"
         aria-label={`${lesson.title}レッスンを開く`}
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-purple-500/0 to-pink-500/0 group-hover/lesson:from-blue-500/10 group-hover/lesson:via-purple-500/10 group-hover/lesson:to-pink-500/10 dark:group-hover/lesson:from-blue-500/5 dark:group-hover/lesson:via-purple-500/5 dark:group-hover/lesson:to-pink-500/5 rounded-xl transition-all duration-300" />
+        <motion.div
+          className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-purple-500/0 to-pink-500/0 group-hover/lesson:from-blue-500/10 group-hover/lesson:via-purple-500/10 group-hover/lesson:to-pink-500/10 dark:group-hover/lesson:from-blue-500/5 dark:group-hover/lesson:via-purple-500/5 dark:group-hover/lesson:to-pink-500/5 rounded-xl"
+          initial={{ opacity: 0 }}
+          whileHover={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        />
         <div className="relative p-4 border border-gray-200/50 dark:border-gray-700/50 rounded-xl hover:border-blue-400/50 dark:hover:border-blue-500/50 hover:shadow-lg transition-all duration-300 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-3 flex-1">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0 shadow-md group-hover/lesson:scale-110 transition-transform duration-300">
+              <motion.div
+                className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0 shadow-md"
+                whileHover={{
+                  scale: 1.15,
+                  rotate: [0, -5, 5, -5, 0],
+                  transition: { duration: 0.4 },
+                }}
+                style={{ willChange: "transform" }}
+              >
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                 </svg>
-              </div>
+              </motion.div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-1 group-hover/lesson:text-blue-600 dark:group-hover/lesson:text-blue-400 transition-colors duration-300 line-clamp-2">
                   {lesson.title}
@@ -47,11 +70,16 @@ const RecommendedLessonItem = memo(({ lesson, index }: { lesson: Lesson; index: 
                 </p>
               </div>
             </div>
-            <svg
-              className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0 group-hover/lesson:text-blue-500 dark:group-hover/lesson:text-blue-400 group-hover/lesson:translate-x-1 transition-all duration-300"
+            <motion.svg
+              className="w-5 h-5 text-gray-400 dark:text-gray-500 flex-shrink-0 group-hover/lesson:text-blue-500 dark:group-hover/lesson:text-blue-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
+              whileHover={{
+                x: 4,
+                transition: { duration: 0.2 },
+              }}
+              style={{ willChange: "transform" }}
             >
               <path
                 strokeLinecap="round"
@@ -59,7 +87,7 @@ const RecommendedLessonItem = memo(({ lesson, index }: { lesson: Lesson; index: 
                 strokeWidth={2}
                 d="M9 5l7 7-7 7"
               />
-            </svg>
+            </motion.svg>
           </div>
         </div>
       </Link>

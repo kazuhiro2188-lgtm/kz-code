@@ -2,6 +2,16 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { readFile } from "fs/promises";
 import { join } from "path";
 import { unstable_cache } from "next/cache";
+import {
+  staticCourses,
+  staticLessons,
+  staticSections,
+  getCourseById,
+  getSectionsByCourseId,
+  getLessonsBySectionId,
+  getLessonById,
+  getLesson as getStaticLesson,
+} from "@/lib/data/courses";
 
 /**
  * コンテンツエラーの型定義
@@ -135,128 +145,20 @@ class ContentServiceImpl implements ContentService {
   private readonly CONTENT_BASE_PATH = join(process.cwd(), "content", "lessons");
 
   async listCourses(): Promise<Result<Course[], ContentError>> {
-    // ISR: コース一覧を60秒間キャッシュ（ユーザー非依存データ）
-    return unstable_cache(
-      async () => {
-        try {
-          const supabase = await createServerSupabaseClient();
-
-          const { data, error } = await supabase
-            .from("courses")
-            .select("*")
-            .order("order_index", { ascending: true });
-
-          if (error) {
-            return {
-              success: false,
-              error: {
-                message: "コース一覧の取得に失敗しました",
-                code: error.code || "UNKNOWN_ERROR",
-              },
-            } as Result<Course[], ContentError>;
-          }
-
-          const courses: Course[] =
-            data?.map((c) => ({
-              id: (c as { id: string }).id,
-              title: (c as { title: string }).title,
-              description: (c as { description: string | null }).description,
-              orderIndex: (c as { order_index: number }).order_index,
-              createdAt: (c as { created_at: string }).created_at,
-            })) || [];
-
-          return {
-            success: true,
-            data: courses,
-          } as Result<Course[], ContentError>;
-        } catch (error) {
-          return {
-            success: false,
-            error: {
-              message:
-                error instanceof Error
-                  ? error.message
-                  : "コース一覧の取得中に予期しないエラーが発生しました",
-              code: "UNKNOWN_ERROR",
-            },
-          } as Result<Course[], ContentError>;
-        }
-      },
-      ["courses-list"],
-      {
-        revalidate: 60, // 60秒間キャッシュ
-        tags: ["courses"],
-      }
-    )();
+    // 静的コースデータを返す
+    return {
+      success: true,
+      data: staticCourses.sort((a, b) => a.orderIndex - b.orderIndex),
+    };
   }
 
   async getCourse(courseId: string): Promise<Result<Course | null, ContentError>> {
-    // ISR: コース詳細を60秒間キャッシュ（ユーザー非依存データ）
-    return unstable_cache(
-      async () => {
-        try {
-          const supabase = await createServerSupabaseClient();
-
-          const { data, error } = await supabase
-            .from("courses")
-            .select("*")
-            .eq("id", courseId)
-            .single();
-
-          if (error) {
-            if (error.code === "PGRST116") {
-              // コースが見つからない場合
-              return {
-                success: true,
-                data: null,
-              } as Result<Course | null, ContentError>;
-            }
-
-            return {
-              success: false,
-              error: {
-                message: "コース詳細の取得に失敗しました",
-                code: error.code || "UNKNOWN_ERROR",
-              },
-            } as Result<Course | null, ContentError>;
-          }
-
-          if (!data) {
-            return {
-              success: true,
-              data: null,
-            } as Result<Course | null, ContentError>;
-          }
-
-          return {
-            success: true,
-            data: {
-              id: (data as { id: string }).id,
-              title: (data as { title: string }).title,
-              description: (data as { description: string | null }).description,
-              orderIndex: (data as { order_index: number }).order_index,
-              createdAt: (data as { created_at: string }).created_at,
-            },
-          } as Result<Course | null, ContentError>;
-        } catch (error) {
-          return {
-            success: false,
-            error: {
-              message:
-                error instanceof Error
-                  ? error.message
-                  : "コース詳細の取得中に予期しないエラーが発生しました",
-              code: "UNKNOWN_ERROR",
-            },
-          } as Result<Course | null, ContentError>;
-        }
-      },
-      [`course-${courseId}`],
-      {
-        revalidate: 60, // 60秒間キャッシュ
-        tags: ["courses", `course-${courseId}`],
-      }
-    )();
+    // 静的コースデータから取得
+    const course = getCourseById(courseId);
+    return {
+      success: true,
+      data: course,
+    };
   }
 
   async getLesson(
@@ -264,108 +166,22 @@ class ContentServiceImpl implements ContentService {
     sectionId: string,
     lessonId: string
   ): Promise<Result<Lesson | null, ContentError>> {
-    // ISR: レッスンメタデータを60秒間キャッシュ（ユーザー非依存データ）
-    return unstable_cache(
-      async () => {
-        try {
-          const supabase = await createServerSupabaseClient();
-
-          // セクションがコースに属しているか確認
-          const { data: section, error: sectionError } = await supabase
-            .from("sections")
-            .select("course_id")
-            .eq("id", sectionId)
-            .single();
-
-          if (sectionError || !section || (section as { course_id: string }).course_id !== courseId) {
-            return {
-              success: false,
-              error: {
-                message: "セクションが見つからないか、コースに属していません",
-                code: "SECTION_NOT_FOUND",
-              },
-            } as Result<Lesson | null, ContentError>;
-          }
-
-          // レッスンを取得
-          const { data: lesson, error: lessonError } = await supabase
-            .from("lessons")
-            .select("*")
-            .eq("id", lessonId)
-            .eq("section_id", sectionId)
-            .single();
-
-          if (lessonError) {
-            if (lessonError.code === "PGRST116") {
-              return {
-                success: true,
-                data: null,
-              } as Result<Lesson | null, ContentError>;
-            }
-
-            return {
-              success: false,
-              error: {
-                message: "レッスンの取得に失敗しました",
-                code: lessonError.code || "UNKNOWN_ERROR",
-              },
-            } as Result<Lesson | null, ContentError>;
-          }
-
-          if (!lesson) {
-            return {
-              success: true,
-              data: null,
-            } as Result<Lesson | null, ContentError>;
-          }
-
-          return {
-            success: true,
-            data: {
-              id: (lesson as { id: string }).id,
-              sectionId: (lesson as { section_id: string }).section_id,
-              courseId: courseId,
-              title: (lesson as { title: string }).title,
-              contentPath: (lesson as { content_path: string }).content_path,
-              orderIndex: (lesson as { order_index: number }).order_index,
-              createdAt: (lesson as { created_at: string }).created_at,
-            },
-          } as Result<Lesson | null, ContentError>;
-        } catch (error) {
-          return {
-            success: false,
-            error: {
-              message:
-                error instanceof Error
-                  ? error.message
-                  : "レッスンの取得中に予期しないエラーが発生しました",
-              code: "UNKNOWN_ERROR",
-            },
-          } as Result<Lesson | null, ContentError>;
-        }
-      },
-      [`lesson-${courseId}-${sectionId}-${lessonId}`],
-      {
-        revalidate: 60, // 60秒間キャッシュ
-        tags: ["lessons", `lesson-${lessonId}`],
-      }
-    )();
+    // 静的レッスンデータから取得
+    const lesson = getStaticLesson(courseId, sectionId, lessonId);
+    return {
+      success: true,
+      data: lesson,
+    };
   }
 
   async getLessonContent(
     lessonId: string
   ): Promise<Result<string, ContentError>> {
     try {
-      const supabase = await createServerSupabaseClient();
-
-      // レッスンのメタデータを取得
-      const { data: lesson, error: lessonError } = await supabase
-        .from("lessons")
-        .select("content_path")
-        .eq("id", lessonId)
-        .single();
-
-      if (lessonError || !lesson) {
+      // 静的レッスンデータから取得
+      const lesson = getLessonById(lessonId);
+      
+      if (!lesson) {
         return {
           success: false,
           error: {
@@ -377,7 +193,7 @@ class ContentServiceImpl implements ContentService {
 
       // MDXファイルを読み込む
       // content_path が相対パスの場合、ベースパスと結合
-      const contentPath = (lesson as { content_path: string }).content_path;
+      const contentPath = lesson.contentPath;
       const filePath = contentPath.startsWith("/")
         ? join(process.cwd(), contentPath)
         : join(this.CONTENT_BASE_PATH, contentPath);
@@ -417,83 +233,12 @@ class ContentServiceImpl implements ContentService {
   async getRecommendedLessons(
     userId: string
   ): Promise<Result<Lesson[], ContentError>> {
-    try {
-      const supabase = await createServerSupabaseClient();
-
-      // 完了済みレッスンIDを取得
-      const { data: completedLessons, error: completedError } = await supabase
-        .from("lesson_completions")
-        .select("lesson_id")
-        .eq("user_id", userId);
-
-      if (completedError) {
-        return {
-          success: false,
-          error: {
-            message: "進捗情報の取得に失敗しました",
-            code: completedError.code || "UNKNOWN_ERROR",
-          },
-        };
-      }
-
-      const completedLessonIds = new Set(
-        completedLessons?.map((l) => (l as { lesson_id: string }).lesson_id) || []
-      );
-
-      // すべてのレッスンを取得（order_index順）
-      const { data: allLessons, error: lessonsError } = await supabase
-        .from("lessons")
-        .select("*, sections!inner(course_id)")
-        .order("order_index", { ascending: true });
-
-      if (lessonsError) {
-        return {
-          success: false,
-          error: {
-            message: "レッスン一覧の取得に失敗しました",
-            code: lessonsError.code || "UNKNOWN_ERROR",
-          },
-        };
-      }
-
-      // 未完了のレッスンを推奨レッスンとして返す（最大10件）
-      const recommendedLessons: Lesson[] = [];
-      for (const lesson of allLessons || []) {
-        const lessonTyped = lesson as { id: string; section_id: string; title: string; content_path: string; order_index: number; created_at: string; sections: { course_id: string } };
-        if (!completedLessonIds.has(lessonTyped.id)) {
-          const section = lessonTyped.sections;
-          recommendedLessons.push({
-            id: lessonTyped.id,
-            sectionId: lessonTyped.section_id,
-            courseId: section.course_id,
-            title: lessonTyped.title,
-            contentPath: lessonTyped.content_path,
-            orderIndex: lessonTyped.order_index,
-            createdAt: lessonTyped.created_at,
-          });
-
-          if (recommendedLessons.length >= 10) {
-            break;
-          }
-        }
-      }
-
-      return {
-        success: true,
-        data: recommendedLessons,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: {
-          message:
-            error instanceof Error
-              ? error.message
-              : "推奨レッスンの取得中に予期しないエラーが発生しました",
-          code: "UNKNOWN_ERROR",
-        },
-      };
-    }
+    // 認証が無効化されている場合は空の配列を返す
+    // 静的データからすべてのレッスンを返す（簡易実装）
+    return {
+      success: true,
+      data: staticLessons.slice(0, 10), // 最初の10件を返す
+    };
   }
 
   async getLessonContext(
@@ -508,24 +253,20 @@ class ContentServiceImpl implements ContentService {
       }
 
       // レッスンメタデータも取得してコンテキストに含める
-      const supabase = await createServerSupabaseClient();
-      const { data: lesson, error: lessonError } = await supabase
-        .from("lessons")
-        .select("title, sections!inner(title, courses!inner(title))")
-        .eq("id", lessonId)
-        .single();
-
+      const lesson = getLessonById(lessonId);
       let context = contentResult.data;
 
-      if (!lessonError && lesson) {
-        const lessonTyped = lesson as { title: string; sections: { title: string; courses: { title: string } } };
-        const section = lessonTyped.sections;
-        const courseTitle = section.courses.title;
-        const sectionTitle = section.title;
-        const lessonTitle = lessonTyped.title;
+      if (lesson) {
+        // セクションとコース情報を取得
+        const section = getSectionsByCourseId(lesson.courseId).find(
+          (s) => s.id === lesson.sectionId
+        );
+        const course = getCourseById(lesson.courseId);
 
-        // メタデータをコンテキストに追加
-        context = `# ${courseTitle} > ${sectionTitle} > ${lessonTitle}\n\n${context}`;
+        if (section && course) {
+          // メタデータをコンテキストに追加
+          context = `# ${course.title} > ${section.title} > ${lesson.title}\n\n${context}`;
+        }
       }
 
       return {
